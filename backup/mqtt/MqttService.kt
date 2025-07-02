@@ -2,6 +2,7 @@ package com.seniorcareplus.mqtt
 
 import com.seniorcareplus.models.*
 import com.seniorcareplus.services.HealthDataService
+import com.seniorcareplus.services.LocationService
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import org.eclipse.paho.client.mqttv3.*
@@ -9,10 +10,11 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * MQTT服務類，負責接收和處理來自設備的健康數據
+ * MQTT服務類，負責接收和處理來自設備的健康數據和位置數據
  */
 class MqttService(
-    private val healthDataService: HealthDataService
+    private val healthDataService: HealthDataService,
+    private val locationService: LocationService
 ) {
     private val logger = LoggerFactory.getLogger(MqttService::class.java)
     private var mqttClient: MqttClient? = null
@@ -31,6 +33,13 @@ class MqttService(
         private const val DIAPER_TOPIC = "seniorcareplus/diaper/+"
         private const val LOCATION_TOPIC = "seniorcareplus/location/+"
         private const val DEVICE_STATUS_TOPIC = "seniorcareplus/device/status/+"
+        private const val GATEWAY_TOPIC = "seniorcareplus/gateway/+"
+        private const val BATTERY_TOPIC = "seniorcareplus/battery/+"
+        
+        // 新增的健康監測主題
+        private const val BLOOD_PRESSURE_TOPIC = "seniorcareplus/bloodpressure/+"
+        private const val SLEEP_DATA_TOPIC = "seniorcareplus/sleep/+"
+        private const val STEPS_TOPIC = "seniorcareplus/steps/+"
     }
     
     /**
@@ -91,7 +100,12 @@ class MqttService(
                 TEMPERATURE_TOPIC,
                 DIAPER_TOPIC,
                 LOCATION_TOPIC,
-                DEVICE_STATUS_TOPIC
+                DEVICE_STATUS_TOPIC,
+                GATEWAY_TOPIC,
+                BATTERY_TOPIC,
+                BLOOD_PRESSURE_TOPIC,
+                SLEEP_DATA_TOPIC,
+                STEPS_TOPIC
             )
             
             topics.forEach { topic ->
@@ -113,6 +127,7 @@ class MqttService(
                 logger.debug("收到消息 - 主題: $topic, 內容: $payload")
                 
                 when {
+                    // 健康數據處理
                     topic.startsWith("seniorcareplus/heartrate/") -> {
                         val patientId = extractPatientId(topic)
                         val heartRateData = json.decodeFromString<HeartRateData>(payload)
@@ -134,13 +149,60 @@ class MqttService(
                         logger.info("保存尿布數據: 患者ID=$patientId, 狀態=${diaperData.status}")
                     }
                     
-                    topic.startsWith("seniorcareplus/location/") -> {
+                    topic.startsWith("seniorcareplus/bloodpressure/") -> {
                         val patientId = extractPatientId(topic)
-                        val locationData = json.decodeFromString<LocationData>(payload)
-                        healthDataService.saveLocationData(patientId, locationData)
-                        logger.info("保存位置數據: 患者ID=$patientId, 位置=(${locationData.x}, ${locationData.y})")
+                        val bloodPressureData = json.decodeFromString<Map<String, Any>>(payload)
+                        // 處理血壓數據
+                        logger.info("保存血壓數據: 患者ID=$patientId, 數據=$bloodPressureData")
                     }
                     
+                    topic.startsWith("seniorcareplus/sleep/") -> {
+                        val patientId = extractPatientId(topic)
+                        val sleepData = json.decodeFromString<Map<String, Any>>(payload)
+                        // 處理睡眠數據
+                        logger.info("保存睡眠數據: 患者ID=$patientId, 數據=$sleepData")
+                    }
+                    
+                    topic.startsWith("seniorcareplus/steps/") -> {
+                        val patientId = extractPatientId(topic)
+                        val stepsData = json.decodeFromString<Map<String, Any>>(payload)
+                        // 處理步數數據
+                        logger.info("保存步數數據: 患者ID=$patientId, 數據=$stepsData")
+                    }
+                    
+                    // 位置數據處理 - 核心功能
+                    topic.startsWith("seniorcareplus/location/") -> {
+                        val deviceId = extractDeviceId(topic)
+                        val locationData = json.decodeFromString<LocationData>(payload)
+                        
+                        // 通過LocationService處理位置數據（會自動廣播到WebSocket客戶端）
+                        locationService.updateDeviceLocation(locationData)
+                        logger.info("處理位置數據: 設備ID=$deviceId, 位置=(${locationData.x}, ${locationData.y})")
+                    }
+                    
+                    // Gateway狀態處理
+                    topic.startsWith("seniorcareplus/gateway/") -> {
+                        val gatewayId = extractDeviceId(topic)
+                        val gatewayData = json.decodeFromString<Map<String, Any>>(payload)
+                        
+                        val status = gatewayData["status"] as? String ?: "unknown"
+                        val connectedDevices = (gatewayData["connected_devices"] as? Number)?.toInt() ?: 0
+                        
+                        locationService.updateGatewayStatus(gatewayId, status, connectedDevices)
+                        logger.info("更新Gateway狀態: ID=$gatewayId, 狀態=$status, 連接設備數=$connectedDevices")
+                    }
+                    
+                    // 電池狀態處理
+                    topic.startsWith("seniorcareplus/battery/") -> {
+                        val deviceId = extractDeviceId(topic)
+                        val batteryData = json.decodeFromString<Map<String, Any>>(payload)
+                        
+                        val batteryLevel = (batteryData["level"] as? Number)?.toInt() ?: 0
+                        locationService.updateDeviceBattery(deviceId, batteryLevel)
+                        logger.info("更新設備電池: ID=$deviceId, 電量=$batteryLevel%")
+                    }
+                    
+                    // 設備狀態處理
                     topic.startsWith("seniorcareplus/device/status/") -> {
                         val deviceId = extractDeviceId(topic)
                         handleDeviceStatus(deviceId, payload)
@@ -184,6 +246,21 @@ class MqttService(
     }
     
     /**
+     * 發送指令到設備
+     */
+    suspend fun sendDeviceCommand(deviceId: String, command: Map<String, Any>) {
+        try {
+            val topic = "seniorcareplus/device/config/$deviceId"
+            val message = json.encodeToString(command)
+            
+            mqttClient?.publish(topic, MqttMessage(message.toByteArray()))
+            logger.info("發送設備指令: 設備ID=$deviceId, 指令=$command")
+        } catch (e: Exception) {
+            logger.error("發送設備指令失敗: $deviceId", e)
+        }
+    }
+    
+    /**
      * 重新連接MQTT
      */
     private suspend fun reconnect() {
@@ -194,20 +271,6 @@ class MqttService(
             }
         } catch (e: Exception) {
             logger.error("MQTT重連失敗", e)
-        }
-    }
-    
-    /**
-     * 發布消息到MQTT
-     */
-    suspend fun publishMessage(topic: String, payload: String, qos: Int = 1): Boolean = withContext(Dispatchers.IO) {
-        try {
-            mqttClient?.publish(topic, payload.toByteArray(), qos, false)
-            logger.debug("發布消息成功: $topic")
-            true
-        } catch (e: Exception) {
-            logger.error("發布消息失敗: $topic", e)
-            false
         }
     }
     

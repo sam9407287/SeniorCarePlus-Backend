@@ -1,0 +1,12 @@
+2025-07-02 17:51:53.462 [DefaultDispatcher-worker-1 @call-context#2] INFO  ktor.test - No ktor.deployment.watch patterns match classpath entries, automatic reload is not active
+2025-07-02 17:51:53.588 [DefaultDispatcher-worker-1 @call-context#6] INFO  ktor.test - No ktor.deployment.watch patterns match classpath entries, automatic reload is not active
+2025-07-02 17:51:53.601 [DefaultDispatcher-worker-1 @call-context#10] INFO  ktor.test - No ktor.deployment.watch patterns match classpath entries, automatic reload is not active
+2025-07-02 17:51:53.614 [DefaultDispatcher-worker-1 @call-context#14] INFO  ktor.test - No ktor.deployment.watch patterns match classpath entries, automatic reload is not active
+2025-07-02 17:51:53.627 [DefaultDispatcher-worker-1 @call-context#18] INFO  ktor.test - No ktor.deployment.watch patterns match classpath entries, automatic reload is not active
+2025-07-02 17:51:53.638 [DefaultDispatcher-worker-1 @call-context#22] INFO  ktor.test - No ktor.deployment.watch patterns match classpath entries, automatic reload is not active
+2025-07-02 17:52:51.829 [main] INFO  ktor.application - Autoreload is disabled because the development mode is off.
+2025-07-02 17:52:51.926 [main] INFO  ktor.application - Application started in 0.108 seconds.
+2025-07-02 17:52:51.994 [DefaultDispatcher-worker-1] INFO  ktor.application - Responding at http://0.0.0.0:8080
+2025-07-02 17:53:31.460 [main] INFO  ktor.application - Autoreload is disabled because the development mode is off.
+2025-07-02 17:53:31.560 [main] INFO  ktor.application - Application started in 0.111 seconds.
+2025-07-02 17:53:31.617 [DefaultDispatcher-worker-1] INFO  ktor.application - Responding at http://0.0.0.0:8080
