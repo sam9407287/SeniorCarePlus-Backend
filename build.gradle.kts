@@ -14,6 +14,25 @@ plugins {
 group = "com.seniorcareplus"
 version = "0.0.1"
 
+// Java編譯配置
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+// Kotlin編譯配置
+kotlin {
+    jvmToolchain(17)
+}
+
+// 編譯任務配置
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs = listOf("-Xjsr305=strict")
+    }
+}
+
 application {
     mainClass.set("com.seniorcareplus.ApplicationKt")
 
