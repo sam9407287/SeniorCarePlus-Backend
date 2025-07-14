@@ -14,23 +14,16 @@ plugins {
 group = "com.seniorcareplus"
 version = "0.0.1"
 
-// Java編譯配置
+// 設置Java target version
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
 
-// Kotlin編譯配置
+// 設置Kotlin JVM target
 kotlin {
     jvmToolchain(17)
-}
-
-// 編譯任務配置
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs = listOf("-Xjsr305=strict")
-    }
 }
 
 application {
@@ -56,6 +49,8 @@ dependencies {
     implementation("io.ktor:ktor-server-call-logging-jvm")
     implementation("io.ktor:ktor-server-auth-jvm")
     implementation("io.ktor:ktor-server-auth-jwt-jvm")
+    implementation("io.ktor:ktor-server-default-headers-jvm")
+    implementation("io.ktor:ktor-server-status-pages-jvm")
     
     // Database
     implementation("org.jetbrains.exposed:exposed-core:$exposed_version")
