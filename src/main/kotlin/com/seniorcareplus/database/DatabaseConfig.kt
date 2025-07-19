@@ -31,14 +31,23 @@ object DatabaseConfig {
      */
     private fun tryConnectPostgreSQL(): Boolean {
         return try {
-            val url = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
-            val user = System.getenv("DATABASE_USER") ?: "postgres"
-            val password = System.getenv("DATABASE_PASSWORD") ?: "password"
+            // 支援多種PostgreSQL連接格式
+            val url = System.getenv("DATABASE_URL") 
+                ?: System.getenv("SUPABASE_DATABASE_URL")
+                ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
+            val user = System.getenv("DATABASE_USER") 
+                ?: System.getenv("SUPABASE_USER")
+                ?: "postgres"
+            val password = System.getenv("DATABASE_PASSWORD") 
+                ?: System.getenv("SUPABASE_PASSWORD")
+                ?: "password"
             
             logger.info("測試PostgreSQL連接...")
+            logger.info("連接URL: ${url.replace(Regex("password=[^&\\s]+"), "password=***")}")
+            
             val connection = DriverManager.getConnection(url, user, password)
             connection.close()
-            logger.info("PostgreSQL連接測試成功")
+            logger.info("PostgreSQL連接測試成功！")
             true
         } catch (e: Exception) {
             logger.warn("PostgreSQL連接測試失敗: ${e.message}")
@@ -55,10 +64,16 @@ object DatabaseConfig {
             
             // 配置HikariCP連接池
             val config = HikariConfig().apply {
-                jdbcUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
+                jdbcUrl = System.getenv("DATABASE_URL") 
+                    ?: System.getenv("SUPABASE_DATABASE_URL")
+                    ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
                 driverClassName = "org.postgresql.Driver"
-                username = System.getenv("DATABASE_USER") ?: "postgres"
-                password = System.getenv("DATABASE_PASSWORD") ?: "password"
+                username = System.getenv("DATABASE_USER") 
+                    ?: System.getenv("SUPABASE_USER")
+                    ?: "postgres"
+                password = System.getenv("DATABASE_PASSWORD") 
+                    ?: System.getenv("SUPABASE_PASSWORD")
+                    ?: "password"
                 
                 // 連接池配置
                 maximumPoolSize = 10
@@ -72,6 +87,11 @@ object DatabaseConfig {
                 addDataSourceProperty("cachePrepStmts", "true")
                 addDataSourceProperty("prepStmtCacheSize", "250")
                 addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
+                
+                // Supabase SSL配置
+                if (jdbcUrl.contains("supabase")) {
+                    addDataSourceProperty("sslmode", "require")
+                }
             }
             
             val dataSource = HikariDataSource(config)
@@ -79,7 +99,7 @@ object DatabaseConfig {
             // 連接到PostgreSQL數據庫
             Database.connect(dataSource)
             
-            logger.info("PostgreSQL數據庫連接成功")
+            logger.info("PostgreSQL數據庫連接成功 (${config.jdbcUrl})")
             
             // 創建表格
             createTables()

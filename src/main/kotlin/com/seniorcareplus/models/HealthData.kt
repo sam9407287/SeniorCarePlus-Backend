@@ -2,6 +2,7 @@ package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
 import java.time.Instant
+import kotlinx.serialization.SerialName
 
 /**
  * 心率數據模型
@@ -40,18 +41,69 @@ data class DiaperData(
 )
 
 /**
- * 位置數據模型
+ * UWB位置數據（實際接收的格式）
+ */
+@Serializable
+data class UWBLocationData(
+    val content: String,
+    @SerialName("gateway id") val gatewayId: Long,
+    val node: String,
+    val id: Int,
+    @SerialName("id(Hex)") val idHex: String,
+    val position: UWBPosition,
+    val time: String,
+    @SerialName("sf number") val sfNumber: Int,
+    @SerialName("serial no") val serialNo: Int
+) {
+    /**
+     * 轉換為標準LocationData格式
+     */
+    fun toLocationData(): LocationData {
+        return LocationData(
+            patientId = mapTagIdToPatientId(id),
+            x = position.x,
+            y = position.y,
+            z = position.z,
+            accuracy = position.quality.toDouble(),
+            area = "UWB覆蓋區域",
+            deviceId = "UWB_TAG_$id",
+            timestamp = System.currentTimeMillis() / 1000
+        )
+    }
+    
+    /**
+     * 將標籤ID映射到患者ID
+     */
+    private fun mapTagIdToPatientId(tagId: Int): String {
+        return when (tagId) {
+            1770 -> "device_001"  // 0x06EA
+            13402 -> "device_002" // 0x345A
+            else -> "device_unknown_$tagId"
+        }
+    }
+}
+
+@Serializable
+data class UWBPosition(
+    val x: Double,
+    val y: Double,
+    val z: Double,
+    val quality: Int
+)
+
+/**
+ * 位置數據
  */
 @Serializable
 data class LocationData(
     val patientId: String,
     val x: Double,
     val y: Double,
-    val z: Double = 0.0,
+    val z: Double? = null,
     val accuracy: Double? = null,
     val area: String? = null,
-    val timestamp: Long = Instant.now().epochSecond,
-    val deviceId: String? = null
+    val deviceId: String? = null,
+    val timestamp: Long = System.currentTimeMillis() / 1000
 )
 
 /**

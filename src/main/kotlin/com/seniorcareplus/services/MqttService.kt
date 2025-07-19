@@ -1,16 +1,18 @@
 package com.seniorcareplus.services
 
-import com.seniorcareplus.database.*
 import com.seniorcareplus.models.*
-import kotlinx.coroutines.*
+import com.seniorcareplus.database.*
+import org.eclipse.paho.client.mqttv3.*
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.slf4j.LoggerFactory
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import org.eclipse.paho.client.mqttv3.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.slf4j.LoggerFactory
-import java.time.LocalDateTime
 import java.time.Instant
 import java.time.ZoneId
 import javax.net.ssl.SSLContext
@@ -186,13 +188,16 @@ class MqttService {
      */
     private suspend fun processLocationData(messageContent: String) {
         try {
-            // 解析UWB位置數據 (假設格式與app端相同)
-            val locationData = json.decodeFromString<LocationData>(messageContent)
+            // 解析UWB位置數據
+            val uwbLocationData = json.decodeFromString<UWBLocationData>(messageContent)
+            val locationData = uwbLocationData.toLocationData()
+            
+            logger.info("UWB位置數據 - 標籤ID: ${uwbLocationData.id} (${uwbLocationData.idHex}), 位置: (${locationData.x}, ${locationData.y}, ${locationData.z}), 品質: ${uwbLocationData.position.quality}")
             
             // 存儲到數據庫
             transaction {
                 // 檢查患者是否存在
-                val patient = Patients.select { Patients.deviceId eq (locationData.deviceId ?: "unknown") }
+                val patient = Patients.select { Patients.deviceId eq locationData.patientId }
                     .singleOrNull()
                 
                 if (patient != null) {
@@ -203,22 +208,47 @@ class MqttService {
                         it[LocationRecords.patientId] = patientId
                         it[x] = locationData.x
                         it[y] = locationData.y
-                        it[z] = locationData.z
-                        it[accuracy] = locationData.accuracy
-                        it[area] = locationData.area
+                        it[z] = locationData.z ?: 0.0
+                        it[accuracy] = locationData.accuracy ?: 0.0
+                        it[area] = locationData.area ?: "未知區域"
                         it[deviceId] = locationData.deviceId ?: "unknown"
                         it[timestamp] = Instant.ofEpochSecond(locationData.timestamp)
                             .atZone(ZoneId.systemDefault()).toLocalDateTime()
                     }
                     
-                    logger.info("位置數據已存儲 - 患者ID: $patientId, 位置: (${locationData.x}, ${locationData.y})")
+                    logger.info("位置數據已存儲到數據庫 - 患者ID: $patientId, 標籤: ${uwbLocationData.idHex}")
                 } else {
-                    logger.warn("找不到對應的患者 - 設備ID: ${locationData.deviceId}")
+                    logger.warn("找不到對應的患者 - 設備ID: ${locationData.patientId}, 標籤ID: ${uwbLocationData.id}")
+                    
+                    // 如果是未知設備，創建一個臨時患者記錄
+                    val newPatientId = Patients.insert {
+                        it[name] = "未知患者_${uwbLocationData.id}"
+                        it[deviceId] = locationData.patientId
+                        it[room] = "未分配"
+                        it[age] = 0
+                        it[gender] = "未知"
+                    }[Patients.id].value
+                    
+                    // 插入位置記錄
+                    LocationRecords.insert {
+                        it[LocationRecords.patientId] = newPatientId
+                        it[x] = locationData.x
+                        it[y] = locationData.y
+                        it[z] = locationData.z ?: 0.0
+                        it[accuracy] = locationData.accuracy ?: 0.0
+                        it[area] = locationData.area ?: "未知區域"
+                        it[deviceId] = locationData.deviceId ?: "unknown"
+                        it[timestamp] = Instant.ofEpochSecond(locationData.timestamp)
+                            .atZone(ZoneId.systemDefault()).toLocalDateTime()
+                    }
+                    
+                    logger.info("創建新患者並存儲位置數據 - 患者ID: $newPatientId, 標籤: ${uwbLocationData.idHex}")
                 }
             }
             
         } catch (e: Exception) {
             logger.error("處理位置數據失敗: ${e.message}")
+            logger.debug("原始數據: $messageContent")
         }
     }
     
@@ -241,7 +271,7 @@ class MqttService {
                     HealthRecords.insert {
                         it[HealthRecords.patientId] = id
                         it[dataType] = "heart_rate"
-                        it[value] = json.encodeToString(heartRateData)
+                        it[value] = json.encodeToString(HeartRateData.serializer(), heartRateData)
                         it[deviceId] = heartRateData.deviceId ?: patientId
                         it[quality] = heartRateData.quality
                         it[unit] = "bpm"
@@ -275,7 +305,7 @@ class MqttService {
                     HealthRecords.insert {
                         it[HealthRecords.patientId] = id
                         it[dataType] = "temperature"
-                        it[value] = json.encodeToString(temperatureData)
+                        it[value] = json.encodeToString(TemperatureData.serializer(), temperatureData)
                         it[deviceId] = temperatureData.deviceId ?: patientId
                         it[unit] = temperatureData.unit
                         it[timestamp] = Instant.ofEpochSecond(temperatureData.timestamp)
@@ -308,7 +338,7 @@ class MqttService {
                     HealthRecords.insert {
                         it[HealthRecords.patientId] = id
                         it[dataType] = "diaper"
-                        it[value] = json.encodeToString(diaperData)
+                        it[value] = json.encodeToString(DiaperData.serializer(), diaperData)
                         it[deviceId] = diaperData.deviceId ?: patientId
                         it[timestamp] = Instant.ofEpochSecond(diaperData.timestamp)
                             .atZone(ZoneId.systemDefault()).toLocalDateTime()
