@@ -25,16 +25,27 @@ import java.time.Duration
 fun main() {
     val logger = LoggerFactory.getLogger("Application")
     
+    // 讀取端口（Railway 會提供 PORT 環境變數）
+    val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    logger.info("準備啟動服務器，端口: $port")
+    
     // 初始化數據庫
     logger.info("正在初始化數據庫...")
-    DatabaseConfig.init()
-    
-    // 創建測試數據
-    logger.info("正在創建測試數據...")
-    DatabaseConfig.createTestData()
+    try {
+        DatabaseConfig.init()
+        logger.info("數據庫初始化成功")
+        
+        // 創建測試數據
+        logger.info("正在創建測試數據...")
+        DatabaseConfig.createTestData()
+        logger.info("測試數據創建成功")
+    } catch (e: Exception) {
+        logger.error("數據庫初始化失敗，但應用仍會繼續啟動", e)
+    }
     
     // 啟動服務器
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
+    logger.info("正在啟動 Netty 服務器...")
+    embeddedServer(Netty, port = port, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
 
