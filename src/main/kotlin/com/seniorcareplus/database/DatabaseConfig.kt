@@ -63,15 +63,22 @@ object DatabaseConfig {
             logger.info("正在初始化PostgreSQL數據庫...")
             
             // 配置HikariCP連接池
+            val databaseUrl = System.getenv("DATABASE_URL") 
+                ?: System.getenv("DATABASE_PUBLIC_URL")
+                ?: System.getenv("SUPABASE_DATABASE_URL")
+                ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
+            
+            logger.info("📌 連接數據庫: ${databaseUrl.replace(Regex(":[^:@]+@"), ":***@")}")
+            
             val config = HikariConfig().apply {
-                jdbcUrl = System.getenv("DATABASE_URL") 
-                    ?: System.getenv("SUPABASE_DATABASE_URL")
-                    ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
+                jdbcUrl = databaseUrl
                 driverClassName = "org.postgresql.Driver"
-                username = System.getenv("DATABASE_USER") 
+                username = System.getenv("PGUSER")
+                    ?: System.getenv("DATABASE_USER") 
                     ?: System.getenv("SUPABASE_USER")
                     ?: "postgres"
-                password = System.getenv("DATABASE_PASSWORD") 
+                password = System.getenv("PGPASSWORD")
+                    ?: System.getenv("DATABASE_PASSWORD") 
                     ?: System.getenv("SUPABASE_PASSWORD")
                     ?: "password"
                 
@@ -102,9 +109,16 @@ object DatabaseConfig {
             logger.info("PostgreSQL數據庫連接成功 (${config.jdbcUrl})")
             
             // 創建表格
+            logger.info("⏳ 正在創建數據庫表格...")
             createTables()
             
-            logger.info("PostgreSQL數據庫表格創建完成")
+            // 驗證表格創建
+            transaction {
+                val tableCount = exec("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'") {
+                    if (it.next()) it.getInt(1) else 0
+                }
+                logger.info("✅ PostgreSQL數據庫表格創建完成！共 $tableCount 個表格")
+            }
             
         } catch (e: Exception) {
             logger.error("PostgreSQL數據庫初始化失敗: ${e.message}")
