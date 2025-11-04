@@ -32,25 +32,39 @@ object DatabaseConfig {
     private fun tryConnectPostgreSQL(): Boolean {
         return try {
             // 支援多種PostgreSQL連接格式
-            val url = System.getenv("DATABASE_URL") 
+            var url = System.getenv("DATABASE_URL") 
+                ?: System.getenv("DATABASE_PUBLIC_URL")
                 ?: System.getenv("SUPABASE_DATABASE_URL")
                 ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
-            val user = System.getenv("DATABASE_USER") 
-                ?: System.getenv("SUPABASE_USER")
-                ?: "postgres"
-            val password = System.getenv("DATABASE_PASSWORD") 
-                ?: System.getenv("SUPABASE_PASSWORD")
-                ?: "password"
+            
+            // 轉換 Railway/Heroku 格式的 URL
+            if (url.startsWith("postgres://")) {
+                url = url.replace("postgres://", "jdbc:postgresql://")
+            }
+            
+            // 從 URL 中提取用戶名和密碼（如果包含）
+            var user = System.getenv("PGUSER") ?: System.getenv("DATABASE_USER") ?: "postgres"
+            var password = System.getenv("PGPASSWORD") ?: System.getenv("DATABASE_PASSWORD") ?: "password"
+            
+            // 如果 URL 中包含用戶名和密碼，提取它們
+            val urlPattern = Regex("jdbc:postgresql://([^:]+):([^@]+)@(.+)")
+            val match = urlPattern.find(url)
+            if (match != null) {
+                user = match.groupValues[1]
+                password = match.groupValues[2]
+                url = "jdbc:postgresql://${match.groupValues[3]}"
+            }
             
             logger.info("測試PostgreSQL連接...")
-            logger.info("連接URL: ${url.replace(Regex("password=[^&\\s]+"), "password=***")}")
+            logger.info("連接URL: ${url.replace(Regex(":[^:@]+@"), ":***@")}")
+            logger.info("用戶: $user")
             
             val connection = DriverManager.getConnection(url, user, password)
             connection.close()
-            logger.info("PostgreSQL連接測試成功！")
+            logger.info("✅ PostgreSQL連接測試成功！")
             true
         } catch (e: Exception) {
-            logger.warn("PostgreSQL連接測試失敗: ${e.message}")
+            logger.error("❌ PostgreSQL連接測試失敗: ${e.message}", e)
             false
         }
     }
@@ -63,24 +77,39 @@ object DatabaseConfig {
             logger.info("正在初始化PostgreSQL數據庫...")
             
             // 配置HikariCP連接池
-            val databaseUrl = System.getenv("DATABASE_URL") 
+            var databaseUrl = System.getenv("DATABASE_URL") 
                 ?: System.getenv("DATABASE_PUBLIC_URL")
                 ?: System.getenv("SUPABASE_DATABASE_URL")
                 ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
             
+            // 轉換 Railway/Heroku 格式的 URL (postgres:// -> jdbc:postgresql://)
+            if (databaseUrl.startsWith("postgres://")) {
+                databaseUrl = databaseUrl.replace("postgres://", "jdbc:postgresql://")
+                logger.info("🔄 轉換數據庫 URL 格式: postgres:// -> jdbc:postgresql://")
+            }
+            
             logger.info("📌 連接數據庫: ${databaseUrl.replace(Regex(":[^:@]+@"), ":***@")}")
+            
+            // 從 URL 中提取用戶名和密碼（如果包含）
+            var username = System.getenv("PGUSER") ?: System.getenv("DATABASE_USER") ?: "postgres"
+            var password = System.getenv("PGPASSWORD") ?: System.getenv("DATABASE_PASSWORD") ?: "password"
+            
+            val urlPattern = Regex("jdbc:postgresql://([^:]+):([^@]+)@(.+)")
+            val match = urlPattern.find(databaseUrl)
+            if (match != null) {
+                username = match.groupValues[1]
+                password = match.groupValues[2]
+                databaseUrl = "jdbc:postgresql://${match.groupValues[3]}"
+                logger.info("🔑 從 URL 中提取用戶認證信息")
+            }
+            
+            logger.info("👤 數據庫用戶: $username")
             
             val config = HikariConfig().apply {
                 jdbcUrl = databaseUrl
                 driverClassName = "org.postgresql.Driver"
-                username = System.getenv("PGUSER")
-                    ?: System.getenv("DATABASE_USER") 
-                    ?: System.getenv("SUPABASE_USER")
-                    ?: "postgres"
-                password = System.getenv("PGPASSWORD")
-                    ?: System.getenv("DATABASE_PASSWORD") 
-                    ?: System.getenv("SUPABASE_PASSWORD")
-                    ?: "password"
+                this.username = username
+                this.password = password
                 
                 // 連接池配置
                 maximumPoolSize = 10
