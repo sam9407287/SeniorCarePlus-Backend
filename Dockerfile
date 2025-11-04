@@ -1,26 +1,41 @@
-# 使用OpenJDK 11作為基礎鏡像
-FROM openjdk:11-jre-slim
+# Stage 1: 構建應用
+FROM gradle:8.4-jdk17 AS builder
 
-# 設置工作目錄
 WORKDIR /app
 
-# 複製JAR文件
-COPY build/libs/MyApplicationBackend-all.jar app.jar
+# 複製 Gradle 配置文件
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY gradle ./gradle
+
+# 下載依賴（利用 Docker 緩存）
+RUN gradle dependencies --no-daemon || true
+
+# 複製源代碼
+COPY src ./src
+
+# 構建應用（跳過測試以加快構建速度）
+RUN gradle clean build -x test --no-daemon
+
+# Stage 2: 運行應用
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+# 安裝必要的工具（用於健康檢查）
+RUN apk add --no-cache curl
+
+# 從構建階段複製 JAR 文件
+COPY --from=builder /app/build/libs/*.jar app.jar
 
 # 暴露端口
 EXPOSE 8080
 
-# 設置環境變量
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-
-# 創建非root用戶
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN chown -R appuser:appuser /app
-USER appuser
+# 設置 JVM 參數（優化內存使用）
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
 # 健康檢查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
 # 啟動應用
-CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+CMD java $JAVA_OPTS -jar app.jar

@@ -140,6 +140,13 @@ object DatabaseConfig {
     private fun createTables() {
         transaction {
             SchemaUtils.create(
+                // 場域管理表
+                Homes,
+                Floors,
+                Gateways,
+                Anchors,
+                Tags,
+                // 患者與健康數據表
                 Patients,
                 HealthRecords,
                 LocationRecords,

@@ -2,8 +2,71 @@ package com.seniorcareplus.database
 
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
+
+// ==================== 場域管理表 ====================
+
+// 場域表 (Homes)
+object Homes : IntIdTable("homes") {
+    val homeId = varchar("home_id", 100).uniqueIndex()
+    val name = varchar("name", 200)
+    val description = text("description").nullable()
+    val address = varchar("address", 500).nullable()
+    val createdAt = datetime("created_at").default(LocalDateTime.now())
+}
+
+// 樓層表 (Floors)
+object Floors : IntIdTable("floors") {
+    val floorId = varchar("floor_id", 100).uniqueIndex()
+    val homeId = varchar("home_id", 100).references(Homes.homeId, onDelete = ReferenceOption.CASCADE)
+    val name = varchar("name", 200)
+    val level = integer("level")
+    val mapImage = text("map_image").nullable()  // base64 圖片數據
+    val dimensions = text("dimensions").nullable()  // JSON: {width, height, realWidth, realHeight}
+    val calibration = text("calibration").nullable()  // JSON: 校準數據
+    val createdAt = datetime("created_at").default(LocalDateTime.now())
+}
+
+// 網關表 (Gateways)
+object Gateways : IntIdTable("gateways") {
+    val gatewayId = varchar("gateway_id", 100).uniqueIndex()
+    val floorId = varchar("floor_id", 100).references(Floors.floorId, onDelete = ReferenceOption.CASCADE)
+    val name = varchar("name", 200)
+    val macAddress = varchar("mac_address", 50)
+    val firmwareVersion = varchar("firmware_version", 50).nullable()
+    val cloudData = text("cloud_data").nullable()  // JSON: {gateway_id, sub_topic, etc.}
+    val status = varchar("status", 50).default("offline")  // online, offline
+    val lastSeen = datetime("last_seen").nullable()
+    val createdAt = datetime("created_at").default(LocalDateTime.now())
+}
+
+// 錨點表 (Anchors)
+object Anchors : IntIdTable("anchors") {
+    val anchorId = varchar("anchor_id", 100).uniqueIndex()
+    val gatewayId = varchar("gateway_id", 100).references(Gateways.gatewayId, onDelete = ReferenceOption.CASCADE)
+    val name = varchar("name", 200)
+    val macAddress = varchar("mac_address", 50)
+    val position = text("position")  // JSON: {x, y, z}
+    val cloudData = text("cloud_data").nullable()  // JSON: {id, name, config}
+    val status = varchar("status", 50).default("offline")
+    val createdAt = datetime("created_at").default(LocalDateTime.now())
+}
+
+// 標籤表 (Tags)
+object Tags : IntIdTable("tags") {
+    val tagId = varchar("tag_id", 100).uniqueIndex()
+    val gatewayId = varchar("gateway_id", 100).references(Gateways.gatewayId, onDelete = ReferenceOption.CASCADE)
+    val name = varchar("name", 200)
+    val hardwareId = varchar("hardware_id", 50)  // TAG 的實際 ID
+    val cloudData = text("cloud_data").nullable()  // JSON
+    val boundTo = varchar("bound_to", 100).nullable()  // 綁定的患者/設備
+    val status = varchar("status", 50).default("offline")
+    val createdAt = datetime("created_at").default(LocalDateTime.now())
+}
+
+// ==================== 患者與健康數據表 ====================
 
 // 患者表
 object Patients : IntIdTable() {

@@ -25,7 +25,45 @@ data class TemperatureData(
     val temperature: Double,
     val timestamp: Long = Instant.now().epochSecond,
     val deviceId: String? = null,
-    val unit: String = "celsius" // celsius, fahrenheit
+    val unit: String = "celsius", // celsius, fahrenheit
+    val quality: String = "good" // good, fair, poor
+)
+
+/**
+ * 體溫模擬器發送的數據格式
+ */
+@Serializable
+data class SimulatorTemperatureData(
+    val content: String, // "temperature"
+    @SerialName("gateway id") val gatewayId: Int,
+    val node: String, // "TAG"
+    val id: String, // 用戶ID，如 "E001"
+    val name: String, // 用戶名稱
+    val temperature: TemperatureValue,
+    val time: String, // 時間字符串
+    @SerialName("serial no") val serialNo: Int
+) {
+    /**
+     * 轉換為標準TemperatureData格式
+     */
+    fun toTemperatureData(): TemperatureData {
+        return TemperatureData(
+            patientId = id,
+            temperature = temperature.value,
+            timestamp = System.currentTimeMillis() / 1000,
+            deviceId = "TEMP_SENSOR_$id",
+            unit = temperature.unit ?: "celsius",
+            quality = if (temperature.is_abnormal == true) "poor" else "good"
+        )
+    }
+}
+
+@Serializable
+data class TemperatureValue(
+    val value: Double,
+    val unit: String? = "celsius",
+    val is_abnormal: Boolean? = false,
+    val room_temp: Double? = null
 )
 
 /**
