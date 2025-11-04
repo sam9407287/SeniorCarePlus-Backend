@@ -183,10 +183,11 @@ fun Route.fieldManagementRoutes() {
                     }
                     
                     // 刪除該場域下的所有樓層（CASCADE）
-                    Floors.deleteWhere { Floors.homeId eq id }
+                    Floors.deleteWhere { Floors.homeId.eq(id) }
                     
                     // 刪除場域
-                    Homes.deleteWhere { Homes.homeId eq id } > 0
+                    val deletedCount = Homes.deleteWhere { Homes.homeId.eq(id) }
+                    deletedCount > 0
                 }
                 
                 if (deleted) {
@@ -418,7 +419,8 @@ fun Route.fieldManagementRoutes() {
                     }
                     
                     // 刪除樓層
-                    Floors.deleteWhere { Floors.floorId eq id } > 0
+                    val deletedCount = Floors.deleteWhere { Floors.floorId.eq(id) }
+                    deletedCount > 0
                 }
                 
                 if (deleted) {
