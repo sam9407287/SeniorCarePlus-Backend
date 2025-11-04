@@ -33,9 +33,12 @@ EXPOSE 8080
 # 設置 JVM 參數（優化內存使用）
 ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
-# 健康檢查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+# 健康檢查（增加啟動等待時間）
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=5 \
   CMD curl -f http://localhost:8080/health || exit 1
 
+# 設置環境變數（Railway 會自動提供 PORT）
+ENV PORT=8080
+
 # 啟動應用
-CMD java $JAVA_OPTS -jar app.jar
+CMD java $JAVA_OPTS -Dktor.deployment.port=$PORT -jar app.jar
