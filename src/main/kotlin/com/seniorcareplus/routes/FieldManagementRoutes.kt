@@ -10,6 +10,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -183,10 +184,10 @@ fun Route.fieldManagementRoutes() {
                     }
                     
                     // 刪除該場域下的所有樓層（CASCADE）
-                    Floors.deleteWhere { Floors.homeId.eq(id) }
+                    Floors.deleteWhere { Floors.homeId eq id }
                     
                     // 刪除場域
-                    val deletedCount = Homes.deleteWhere { Homes.homeId.eq(id) }
+                    val deletedCount = Homes.deleteWhere { Homes.homeId eq id }
                     deletedCount > 0
                 }
                 
@@ -419,7 +420,7 @@ fun Route.fieldManagementRoutes() {
                     }
                     
                     // 刪除樓層
-                    val deletedCount = Floors.deleteWhere { Floors.floorId.eq(id) }
+                    val deletedCount = Floors.deleteWhere { Floors.floorId eq id }
                     deletedCount > 0
                 }
                 
