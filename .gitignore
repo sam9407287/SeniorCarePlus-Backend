@@ -52,3 +52,7 @@ test_backend.sh
 *.bak
 *.swp
 *~
+
+# Heap dumps and process files
+*.hprof
+*.pid
