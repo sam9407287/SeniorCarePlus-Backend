@@ -167,6 +167,47 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
+        // 刪除場域
+        delete("/homes/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少場域ID")
+                )
+                
+                val deleted = transaction {
+                    // 檢查場域是否存在
+                    val existing = Homes.select { Homes.homeId eq id }.singleOrNull()
+                    if (existing == null) {
+                        return@transaction false
+                    }
+                    
+                    // 刪除該場域下的所有樓層（CASCADE）
+                    Floors.deleteWhere { Floors.homeId eq id }
+                    
+                    // 刪除場域
+                    Homes.deleteWhere { Homes.homeId eq id } > 0
+                }
+                
+                if (deleted) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse<Nothing>(success = true, message = "場域已刪除")
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "場域不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "刪除場域失敗: ${e.message}")
+                )
+            }
+        }
+        
         // 根據場域ID獲取樓層列表
         get("/homes/{homeId}/floors") {
             try {
@@ -361,7 +402,44 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
+        // 刪除樓層
+        delete("/floors/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少樓層ID")
+                )
+                
+                val deleted = transaction {
+                    // 檢查樓層是否存在
+                    val existing = Floors.select { Floors.floorId eq id }.singleOrNull()
+                    if (existing == null) {
+                        return@transaction false
+                    }
+                    
+                    // 刪除樓層
+                    Floors.deleteWhere { Floors.floorId eq id } > 0
+                }
+                
+                if (deleted) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse<Nothing>(success = true, message = "樓層已刪除")
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "樓層不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "刪除樓層失敗: ${e.message}")
+                )
+            }
+        }
+        
         // 其餘 GET /api/gateways, /api/anchors, /api/tags 等路由在此省略
-        // 只保留核心的 Homes 和 Floors CRUD（不含刪除）
     }
 }
