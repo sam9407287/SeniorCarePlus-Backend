@@ -27,24 +27,30 @@ fun main() {
     
     // 讀取端口（Railway 會提供 PORT 環境變數）
     val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
-    logger.info("準備啟動服務器，端口: $port")
+    logger.info("=".repeat(60))
+    logger.info("🚀 準備啟動 SeniorCarePlus Backend")
+    logger.info("📡 監聽端口: $port")
+    logger.info("🌍 監聽地址: 0.0.0.0")
+    logger.info("=".repeat(60))
     
-    // 初始化數據庫
-    logger.info("正在初始化數據庫...")
-    try {
-        DatabaseConfig.init()
-        logger.info("數據庫初始化成功")
-        
-        // 創建測試數據
-        logger.info("正在創建測試數據...")
-        DatabaseConfig.createTestData()
-        logger.info("測試數據創建成功")
-    } catch (e: Exception) {
-        logger.error("數據庫初始化失敗，但應用仍會繼續啟動", e)
-    }
+    // 初始化數據庫（非阻塞式）
+    Thread {
+        try {
+            logger.info("⏳ 正在初始化數據庫...")
+            DatabaseConfig.init()
+            logger.info("✅ 數據庫初始化成功")
+            
+            // 創建測試數據
+            logger.info("⏳ 正在創建測試數據...")
+            DatabaseConfig.createTestData()
+            logger.info("✅ 測試數據創建成功")
+        } catch (e: Exception) {
+            logger.error("❌ 數據庫初始化失敗，但應用仍會繼續運行", e)
+        }
+    }.start()
     
-    // 啟動服務器
-    logger.info("正在啟動 Netty 服務器...")
+    // 立即啟動服務器（不等待數據庫）
+    logger.info("⏳ 正在啟動 Netty 服務器...")
     embeddedServer(Netty, port = port, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
@@ -129,11 +135,16 @@ fun Application.module() {
         
         // 健康檢查
         get("/health") {
-            call.respond(mapOf(
-                "status" to "healthy",
-                "service" to "SeniorCarePlus Backend",
-                "timestamp" to System.currentTimeMillis()
-            ))
+            logger.info("✅ 健康檢查請求")
+            call.respond(
+                HttpStatusCode.OK,
+                mapOf(
+                    "status" to "healthy",
+                    "service" to "SeniorCarePlus Backend",
+                    "timestamp" to System.currentTimeMillis(),
+                    "port" to (System.getenv("PORT") ?: "8080")
+                )
+            )
         }
         
         // API路由
