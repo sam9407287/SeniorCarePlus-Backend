@@ -133,17 +133,13 @@ fun Application.module() {
             ))
         }
         
-        // 健康檢查
+        // 健康檢查（使用純文本避免序列化問題）
         get("/health") {
             logger.info("✅ 健康檢查請求")
-            call.respond(
-                HttpStatusCode.OK,
-                mapOf(
-                    "status" to "healthy",
-                    "service" to "SeniorCarePlus Backend",
-                    "timestamp" to System.currentTimeMillis(),
-                    "port" to (System.getenv("PORT") ?: "8080")
-                )
+            call.respondText(
+                """{"status":"healthy","service":"SeniorCarePlus Backend","timestamp":${System.currentTimeMillis()},"port":"${System.getenv("PORT") ?: "8080"}"}""",
+                ContentType.Application.Json,
+                HttpStatusCode.OK
             )
         }
         
