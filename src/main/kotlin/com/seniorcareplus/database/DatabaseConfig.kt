@@ -40,6 +40,10 @@ object DatabaseConfig {
             // 轉換 Railway/Heroku 格式的 URL
             if (url.startsWith("postgres://")) {
                 url = url.replace("postgres://", "jdbc:postgresql://")
+                logger.info("🔄 轉換 URL: postgres:// -> jdbc:postgresql://")
+            } else if (url.startsWith("postgresql://")) {
+                url = url.replace("postgresql://", "jdbc:postgresql://")
+                logger.info("🔄 轉換 URL: postgresql:// -> jdbc:postgresql://")
             }
             
             // 從 URL 中提取用戶名和密碼（如果包含）
@@ -82,10 +86,13 @@ object DatabaseConfig {
                 ?: System.getenv("SUPABASE_DATABASE_URL")
                 ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
             
-            // 轉換 Railway/Heroku 格式的 URL (postgres:// -> jdbc:postgresql://)
+            // 轉換 Railway/Heroku 格式的 URL (postgres:// 或 postgresql:// -> jdbc:postgresql://)
             if (databaseUrl.startsWith("postgres://")) {
                 databaseUrl = databaseUrl.replace("postgres://", "jdbc:postgresql://")
                 logger.info("🔄 轉換數據庫 URL 格式: postgres:// -> jdbc:postgresql://")
+            } else if (databaseUrl.startsWith("postgresql://")) {
+                databaseUrl = databaseUrl.replace("postgresql://", "jdbc:postgresql://")
+                logger.info("🔄 轉換數據庫 URL 格式: postgresql:// -> jdbc:postgresql://")
             }
             
             logger.info("📌 連接數據庫: ${databaseUrl.replace(Regex(":[^:@]+@"), ":***@")}")
