@@ -33,21 +33,24 @@ fun main() {
     logger.info("🌍 監聽地址: 0.0.0.0")
     logger.info("=".repeat(60))
     
-    // 初始化數據庫（非阻塞式）
-    Thread {
-        try {
-            logger.info("⏳ 正在初始化數據庫...")
-            DatabaseConfig.init()
-            logger.info("✅ 數據庫初始化成功")
-            
-            // 創建測試數據
-            logger.info("⏳ 正在創建測試數據...")
-            DatabaseConfig.createTestData()
-            logger.info("✅ 測試數據創建成功")
-        } catch (e: Exception) {
-            logger.error("❌ 數據庫初始化失敗，但應用仍會繼續運行", e)
-        }
-    }.start()
+    // 初始化數據庫（阻塞式，確保表格創建完成）
+    try {
+        logger.info("⏳ 正在初始化數據庫...")
+        logger.info("📋 環境變數檢查:")
+        logger.info("  - DATABASE_URL: ${System.getenv("DATABASE_URL")?.take(50) ?: "未設置"}...")
+        
+        DatabaseConfig.init()
+        logger.info("✅ 數據庫初始化成功")
+        
+        // 創建測試數據
+        logger.info("⏳ 正在創建測試數據...")
+        DatabaseConfig.createTestData()
+        logger.info("✅ 測試數據創建成功")
+    } catch (e: Exception) {
+        logger.error("❌ 數據庫初始化失敗！", e)
+        logger.error("❌ 應用將繼續運行，但資料庫功能可能不可用", e)
+        // 不拋出異常，讓服務器繼續啟動（用於健康檢查）
+    }
     
     // 立即啟動服務器（不等待數據庫）
     logger.info("⏳ 正在啟動 Netty 服務器...")

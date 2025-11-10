@@ -146,14 +146,25 @@ object DatabaseConfig {
             
             // 創建表格
             logger.info("⏳ 正在創建數據庫表格...")
-            createTables()
-            
-            // 驗證表格創建
-            transaction {
-                val tableCount = exec("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'") {
-                    if (it.next()) it.getInt(1) else 0
+            try {
+                createTables()
+                logger.info("✅ 表格創建邏輯執行完成")
+                
+                // 驗證表格創建（使用簡單的方式）
+                transaction {
+                    try {
+                        // 嘗試查詢一個已知的表格來驗證創建成功
+                        val homesCount = Homes.selectAll().count()
+                        logger.info("✅ PostgreSQL數據庫表格創建完成！")
+                        logger.info("📋 驗證：homes 表格存在，當前記錄數: $homesCount")
+                    } catch (e: Exception) {
+                        logger.warn("⚠️ 警告：無法驗證表格創建，但表格創建邏輯已執行")
+                        logger.warn("⚠️ 錯誤詳情: ${e.message}")
+                    }
                 }
-                logger.info("✅ PostgreSQL數據庫表格創建完成！共 $tableCount 個表格")
+            } catch (e: Exception) {
+                logger.error("❌ 創建表格失敗: ${e.message}", e)
+                throw e
             }
             
         } catch (e: Exception) {
