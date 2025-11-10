@@ -37,6 +37,19 @@ object DatabaseConfig {
                 ?: System.getenv("SUPABASE_DATABASE_URL")
                 ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
             
+            // 診斷：檢查變數引用是否正確解析
+            logger.info("🔍 DATABASE_URL 原始值檢查:")
+            logger.info("  - 長度: ${url.length}")
+            logger.info("  - 前50字符: ${url.take(50)}")
+            logger.info("  - 是否包含變數引用: ${url.contains("\${{")}")
+            
+            // 如果包含變數引用字面量，說明 Railway 沒有正確解析
+            if (url.contains("\${{")) {
+                logger.error("❌ 錯誤：DATABASE_URL 包含未解析的變數引用: $url")
+                logger.error("❌ Railway 變數引用沒有正確解析，請手動設置完整的 DATABASE_URL")
+                return false
+            }
+            
             // 轉換 Railway/Heroku 格式的 URL
             if (url.startsWith("postgres://")) {
                 url = url.replace("postgres://", "jdbc:postgresql://")
@@ -85,6 +98,19 @@ object DatabaseConfig {
                 ?: System.getenv("DATABASE_PUBLIC_URL")
                 ?: System.getenv("SUPABASE_DATABASE_URL")
                 ?: "jdbc:postgresql://localhost:5432/seniorcareplus"
+            
+            // 診斷：檢查變數引用是否正確解析
+            logger.info("🔍 DATABASE_URL 原始值檢查:")
+            logger.info("  - 長度: ${databaseUrl.length}")
+            logger.info("  - 前50字符: ${databaseUrl.take(50)}")
+            logger.info("  - 是否包含變數引用: ${databaseUrl.contains("\${{")}")
+            
+            // 如果包含變數引用字面量，說明 Railway 沒有正確解析
+            if (databaseUrl.contains("\${{")) {
+                logger.error("❌ 錯誤：DATABASE_URL 包含未解析的變數引用: $databaseUrl")
+                logger.error("❌ Railway 變數引用沒有正確解析，請手動設置完整的 DATABASE_URL")
+                throw IllegalStateException("DATABASE_URL 變數引用未解析，請手動設置完整連接字串")
+            }
             
             // 轉換 Railway/Heroku 格式的 URL (postgres:// 或 postgresql:// -> jdbc:postgresql://)
             if (databaseUrl.startsWith("postgres://")) {
