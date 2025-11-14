@@ -239,8 +239,36 @@ object DatabaseConfig {
                 LocationRecords,
                 Devices,
                 Alerts,
-                RemindersTable
+                RemindersTable,
+                // Anchor-Gateway 綁定表
+                GatewayAnchorBindingHistory
             )
+            
+            // ✨ 強制執行表遷移 - 確保新欄位被添加
+            logger.info("⏳ 正在執行數據庫遷移...")
+            try {
+                // 為 anchors 表添加 is_bound 欄位
+                exec("""
+                    ALTER TABLE anchors 
+                    ADD COLUMN IF NOT EXISTS is_bound BOOLEAN DEFAULT false;
+                """)
+                logger.info("✅ 已確保 anchors.is_bound 欄位存在")
+            } catch (e: Exception) {
+                logger.info("ℹ️  is_bound 欄位可能已存在或遷移已執行: ${e.message}")
+            }
+            
+            try {
+                // 修改 gateway_id 為可選（允許 NULL）
+                exec("""
+                    ALTER TABLE anchors 
+                    ALTER COLUMN gateway_id DROP NOT NULL;
+                """)
+                logger.info("✅ 已將 anchors.gateway_id 修改為可選（nullable）")
+            } catch (e: Exception) {
+                logger.info("ℹ️  gateway_id 可能已是可選或遷移已執行: ${e.message}")
+            }
+            
+            logger.info("✅ 數據庫遷移檢查完成")
         }
     }
     
