@@ -443,6 +443,333 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 其餘 GET /api/gateways, /api/anchors, /api/tags 等路由在此省略
+        // ==================== Gateways 路由 ====================
+        
+        // 獲取所有網關
+        get("/gateways") {
+            try {
+                val gateways = transaction {
+                    Gateways.selectAll().map { row ->
+                        GatewayData(
+                            id = row[Gateways.gatewayId],
+                            floorId = row[Gateways.floorId],
+                            name = row[Gateways.name],
+                            macAddress = row[Gateways.macAddress],
+                            firmwareVersion = row[Gateways.firmwareVersion],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Gateways.status],
+                            lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                call.respond(gateways)
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "獲取網關列表失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 根據樓層ID獲取網關
+        get("/floors/{floorId}/gateways") {
+            try {
+                val floorId = call.parameters["floorId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少樓層ID")
+                )
+                
+                val gateways = transaction {
+                    Gateways.select { Gateways.floorId eq floorId }.map { row ->
+                        GatewayData(
+                            id = row[Gateways.gatewayId],
+                            floorId = row[Gateways.floorId],
+                            name = row[Gateways.name],
+                            macAddress = row[Gateways.macAddress],
+                            firmwareVersion = row[Gateways.firmwareVersion],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Gateways.status],
+                            lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                call.respond(gateways)
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "獲取樓層網關列表失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // ==================== Anchors 路由 ====================
+        
+        // 獲取所有錨點
+        get("/anchors") {
+            try {
+                val anchors = transaction {
+                    Anchors.selectAll().map { row ->
+                        val gatewayId = row[Anchors.gatewayId]
+                        val (homeId, floorId) = if (gatewayId != null) {
+                            val gatewayRow = Gateways.select { Gateways.gatewayId eq gatewayId }.singleOrNull()
+                            if (gatewayRow != null) {
+                                val fId = gatewayRow[Gateways.floorId]
+                                val hId = if (fId != null) {
+                                    Floors.select { Floors.floorId eq fId }.singleOrNull()
+                                        ?.let { it[Floors.homeId] }
+                                } else {
+                                    null
+                                }
+                                Pair(hId, fId)
+                            } else {
+                                Pair(null, null)
+                            }
+                        } else {
+                            Pair(null, null)
+                        }
+                        
+                        AnchorData(
+                            id = row[Anchors.anchorId],
+                            gatewayId = gatewayId,
+                            homeId = homeId,
+                            floorId = floorId,
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = row[Anchors.position].let { Json.decodeFromString(it) },
+                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Anchors.status],
+                            isBound = row[Anchors.isBound],
+                            createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                call.respond(anchors)
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "獲取錨點列表失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 創建錨點（初始狀態未綁定）
+        post("/anchors") {
+            try {
+                val request = call.receive<CreateAnchorRequest>()
+                val anchorId = "anchor_${System.currentTimeMillis()}"
+                
+                transaction {
+                    Anchors.insert {
+                        it[Anchors.anchorId] = anchorId
+                        it[gatewayId] = null  // 初始未綁定
+                        it[name] = request.name
+                        it[macAddress] = request.macAddress
+                        it[position] = Json.encodeToString(request.position)
+                        it[cloudData] = request.cloudData?.let { cd -> Json.encodeToString(cd) }
+                        it[isBound] = false
+                    }
+                }
+                
+                val newAnchor = transaction {
+                    Anchors.select { Anchors.anchorId eq anchorId }.single().let { row ->
+                        AnchorData(
+                            id = row[Anchors.anchorId],
+                            gatewayId = null,
+                            homeId = null,
+                            floorId = null,
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = row[Anchors.position].let { Json.decodeFromString(it) },
+                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Anchors.status],
+                            isBound = false,
+                            createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                
+                call.respond(HttpStatusCode.Created, newAnchor)
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "創建錨點失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 根據ID獲取單個錨點
+        get("/anchors/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少錨點ID")
+                )
+                
+                val anchor = transaction {
+                    Anchors.select { Anchors.anchorId eq id }.singleOrNull()?.let { row ->
+                        val gatewayId = row[Anchors.gatewayId]
+                        val (homeId, floorId) = if (gatewayId != null) {
+                            val gatewayRow = Gateways.select { Gateways.gatewayId eq gatewayId }.singleOrNull()
+                            if (gatewayRow != null) {
+                                val fId = gatewayRow[Gateways.floorId]
+                                val hId = if (fId != null) {
+                                    Floors.select { Floors.floorId eq fId }.singleOrNull()
+                                        ?.let { it[Floors.homeId] }
+                                } else {
+                                    null
+                                }
+                                Pair(hId, fId)
+                            } else {
+                                Pair(null, null)
+                            }
+                        } else {
+                            Pair(null, null)
+                        }
+                        
+                        AnchorData(
+                            id = row[Anchors.anchorId],
+                            gatewayId = gatewayId,
+                            homeId = homeId,
+                            floorId = floorId,
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = row[Anchors.position].let { Json.decodeFromString(it) },
+                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Anchors.status],
+                            isBound = row[Anchors.isBound],
+                            createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                
+                if (anchor != null) {
+                    call.respond(anchor)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "錨點不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "獲取錨點失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 更新錨點
+        put("/anchors/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少錨點ID")
+                )
+                val request = call.receive<UpdateAnchorRequest>()
+                
+                val updated = transaction {
+                    val existing = Anchors.select { Anchors.anchorId eq id }.singleOrNull()
+                    if (existing == null) {
+                        return@transaction null
+                    }
+                    
+                    Anchors.update({ Anchors.anchorId eq id }) {
+                        request.name?.let { name -> it[Anchors.name] = name }
+                        request.macAddress?.let { mac -> it[macAddress] = mac }
+                        request.position?.let { pos -> it[position] = Json.encodeToString(pos) }
+                        request.cloudData?.let { cd -> it[cloudData] = Json.encodeToString(cd) }
+                        request.status?.let { st -> it[status] = st }
+                    }
+                    
+                    Anchors.select { Anchors.anchorId eq id }.single().let { row ->
+                        val gatewayId = row[Anchors.gatewayId]
+                        val (homeId, floorId) = if (gatewayId != null) {
+                            val gatewayRow = Gateways.select { Gateways.gatewayId eq gatewayId }.singleOrNull()
+                            if (gatewayRow != null) {
+                                val fId = gatewayRow[Gateways.floorId]
+                                val hId = if (fId != null) {
+                                    Floors.select { Floors.floorId eq fId }.singleOrNull()
+                                        ?.let { it[Floors.homeId] }
+                                } else {
+                                    null
+                                }
+                                Pair(hId, fId)
+                            } else {
+                                Pair(null, null)
+                            }
+                        } else {
+                            Pair(null, null)
+                        }
+                        
+                        AnchorData(
+                            id = row[Anchors.anchorId],
+                            gatewayId = gatewayId,
+                            homeId = homeId,
+                            floorId = floorId,
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = row[Anchors.position].let { Json.decodeFromString(it) },
+                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Anchors.status],
+                            isBound = row[Anchors.isBound],
+                            createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                
+                if (updated != null) {
+                    call.respond(updated)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "錨點不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "更新錨點失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 刪除錨點
+        delete("/anchors/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少錨點ID")
+                )
+                
+                val deleted = transaction {
+                    val existing = Anchors.select { Anchors.anchorId eq id }.singleOrNull()
+                    if (existing == null) {
+                        return@transaction false
+                    }
+                    
+                    val deletedCount = Anchors.deleteWhere { Anchors.anchorId eq id }
+                    deletedCount > 0
+                }
+                
+                if (deleted) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse<Nothing>(success = true, message = "錨點已刪除")
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "錨點不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "刪除錨點失敗: ${e.message}")
+                )
+            }
+        }
     }
 }

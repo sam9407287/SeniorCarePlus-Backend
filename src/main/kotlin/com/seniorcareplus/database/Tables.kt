@@ -45,12 +45,15 @@ object Gateways : IntIdTable("gateways") {
 // 錨點表 (Anchors)
 object Anchors : IntIdTable("anchors") {
     val anchorId = varchar("anchor_id", 100).uniqueIndex()
-    val gatewayId = varchar("gateway_id", 100).references(Gateways.gatewayId, onDelete = ReferenceOption.CASCADE)
+    // 當 Anchor 未被綁定到 Gateway 時，此欄位可為 NULL
+    // 當管理員通過 API 綁定後，此欄位會被設置
+    val gatewayId = varchar("gateway_id", 100).references(Gateways.gatewayId, onDelete = ReferenceOption.SET_NULL).nullable()
     val name = varchar("name", 200)
     val macAddress = varchar("mac_address", 50)
     val position = text("position")  // JSON: {x, y, z}
     val cloudData = text("cloud_data").nullable()  // JSON: {id, name, config}
     val status = varchar("status", 50).default("offline")
+    val isBound = bool("is_bound").default(false)  // 標記是否已綁定到 Gateway
     val createdAt = datetime("created_at").default(LocalDateTime.now())
 }
 
@@ -143,4 +146,18 @@ object RemindersTable : IntIdTable() {
     val completedAt = datetime("completed_at").nullable()
     val createdAt = datetime("created_at").default(LocalDateTime.now())
     val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+}
+
+// ==================== Gateway-Anchor 綁定表 ====================
+
+// Gateway-Anchor 綁定歷史記錄表
+// 用於記錄 Anchor 與 Gateway 的綁定操作記錄
+object GatewayAnchorBindingHistory : IntIdTable("gateway_anchor_binding_history") {
+    val bindingId = varchar("binding_id", 100).uniqueIndex()  // 綁定記錄 ID
+    val anchorId = varchar("anchor_id", 100).references(Anchors.anchorId, onDelete = ReferenceOption.CASCADE)
+    val gatewayId = varchar("gateway_id", 100).references(Gateways.gatewayId, onDelete = ReferenceOption.CASCADE)
+    val action = varchar("action", 50)  // 'bind' 或 'unbind'
+    val reason = text("reason").nullable()  // 操作原因
+    val operatedBy = varchar("operated_by", 100).nullable()  // 操作人（未來可擴展）
+    val createdAt = datetime("created_at").default(LocalDateTime.now())
 } 

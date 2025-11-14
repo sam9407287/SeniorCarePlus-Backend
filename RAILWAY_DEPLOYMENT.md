@@ -197,3 +197,4 @@ railway up --detach
 3. ✅ 確認不同電腦打開網頁看到的數據是一致的
 4. ✅ 未來可以遷移到 Google Cloud Run（步驟類似）
 
+

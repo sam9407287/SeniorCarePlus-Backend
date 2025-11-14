@@ -175,16 +175,20 @@ data class UpdateGatewayRequest(
 
 /**
  * 錨點數據模型 (Anchor)
+ * 當 Anchor 未綁定時，gatewayId/homeId/floorId 為 null
  */
 @Serializable
 data class AnchorData(
     val id: String,
-    val gatewayId: String,
+    val gatewayId: String? = null,      // 綁定的 Gateway ID（未綁定時為 null）
+    val homeId: String? = null,          // 反查：Gateway 所在的養老院
+    val floorId: String? = null,         // 反查：Gateway 所在的樓層
     val name: String,
     val macAddress: String,
     val position: PositionData,
     val cloudData: AnchorCloudData? = null,
     val status: String = "offline",
+    val isBound: Boolean = false,        // 是否已綁定到 Gateway
     val createdAt: String
 )
 
@@ -218,10 +222,10 @@ data class AnchorConfig(
 
 /**
  * 創建錨點請求
+ * Anchor 初始創建時不綁定到 Gateway
  */
 @Serializable
 data class CreateAnchorRequest(
-    val gatewayId: String,
     val name: String,
     val macAddress: String,
     val position: PositionData,

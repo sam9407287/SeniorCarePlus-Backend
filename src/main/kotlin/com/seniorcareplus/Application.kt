@@ -4,6 +4,7 @@ import com.seniorcareplus.database.DatabaseConfig
 import com.seniorcareplus.routes.healthRoutes
 import com.seniorcareplus.routes.webSocketRoutes
 import com.seniorcareplus.routes.fieldManagementRoutes
+import com.seniorcareplus.routes.anchorBindingRoutes
 import com.seniorcareplus.services.MqttService
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -151,6 +152,9 @@ fun Application.module() {
         
         // 場域管理路由 (Homes, Floors, Gateways, Anchors, Tags)
         fieldManagementRoutes()
+        
+        // Anchor-Gateway 綁定路由
+        anchorBindingRoutes()
         
         // WebSocket路由
         webSocketRoutes()
