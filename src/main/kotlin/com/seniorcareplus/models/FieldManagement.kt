@@ -165,6 +165,7 @@ data class CreateGatewayRequest(
  */
 @Serializable
 data class UpdateGatewayRequest(
+    val floorId: String? = null,
     val name: String? = null,
     val macAddress: String? = null,
     val firmwareVersion: String? = null,
