@@ -504,6 +504,180 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
+        // 創建新網關
+        post("/gateways") {
+            try {
+                val request = call.receive<CreateGatewayRequest>()
+                val gatewayId = "gateway_${System.currentTimeMillis()}"
+                
+                transaction {
+                    Gateways.insert {
+                        it[Gateways.gatewayId] = gatewayId
+                        it[floorId] = request.floorId
+                        it[name] = request.name
+                        it[macAddress] = request.macAddress
+                        it[firmwareVersion] = request.firmwareVersion
+                        it[cloudData] = request.cloudData?.let { cd -> Json.encodeToString(cd) }
+                    }
+                }
+                
+                val newGateway = transaction {
+                    Gateways.select { Gateways.gatewayId eq gatewayId }.single().let { row ->
+                        GatewayData(
+                            id = row[Gateways.gatewayId],
+                            floorId = row[Gateways.floorId],
+                            name = row[Gateways.name],
+                            macAddress = row[Gateways.macAddress],
+                            firmwareVersion = row[Gateways.firmwareVersion],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Gateways.status],
+                            lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                
+                call.respond(HttpStatusCode.Created, newGateway)
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "創建網關失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 根據ID獲取單個網關
+        get("/gateways/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少網關ID")
+                )
+                
+                val gateway = transaction {
+                    Gateways.select { Gateways.gatewayId eq id }.singleOrNull()?.let { row ->
+                        GatewayData(
+                            id = row[Gateways.gatewayId],
+                            floorId = row[Gateways.floorId],
+                            name = row[Gateways.name],
+                            macAddress = row[Gateways.macAddress],
+                            firmwareVersion = row[Gateways.firmwareVersion],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Gateways.status],
+                            lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                
+                if (gateway != null) {
+                    call.respond(gateway)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "網關不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "獲取網關失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 更新網關
+        put("/gateways/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少網關ID")
+                )
+                val request = call.receive<UpdateGatewayRequest>()
+                
+                val updated = transaction {
+                    val existing = Gateways.select { Gateways.gatewayId eq id }.singleOrNull()
+                    if (existing == null) {
+                        return@transaction null
+                    }
+                    
+                    Gateways.update({ Gateways.gatewayId eq id }) {
+                        request.name?.let { name -> it[Gateways.name] = name }
+                        request.floorId?.let { fId -> it[floorId] = fId }
+                        request.macAddress?.let { mac -> it[macAddress] = mac }
+                        request.firmwareVersion?.let { fw -> it[firmwareVersion] = fw }
+                        request.cloudData?.let { cd -> it[cloudData] = Json.encodeToString(cd) }
+                        request.status?.let { s -> it[status] = s }
+                    }
+                    
+                    Gateways.select { Gateways.gatewayId eq id }.single().let { row ->
+                        GatewayData(
+                            id = row[Gateways.gatewayId],
+                            floorId = row[Gateways.floorId],
+                            name = row[Gateways.name],
+                            macAddress = row[Gateways.macAddress],
+                            firmwareVersion = row[Gateways.firmwareVersion],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
+                            status = row[Gateways.status],
+                            lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        )
+                    }
+                }
+                
+                if (updated != null) {
+                    call.respond(updated)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "網關不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "更新網關失敗: ${e.message}")
+                )
+            }
+        }
+        
+        // 刪除網關
+        delete("/gateways/{id}") {
+            try {
+                val id = call.parameters["id"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    ApiResponse<Nothing>(success = false, message = "缺少網關ID")
+                )
+                
+                val deleted = transaction {
+                    val existing = Gateways.select { Gateways.gatewayId eq id }.singleOrNull()
+                    if (existing == null) {
+                        return@transaction false
+                    }
+                    
+                    val deletedCount = Gateways.deleteWhere { Gateways.gatewayId eq id }
+                    deletedCount > 0
+                }
+                
+                if (deleted) {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse<Nothing>(success = true, message = "網關已刪除")
+                    )
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ApiResponse<Nothing>(success = false, message = "網關不存在")
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ApiResponse<Nothing>(success = false, message = "刪除網關失敗: ${e.message}")
+                )
+            }
+        }
+        
         // ==================== Anchors 路由 ====================
         
         // 獲取所有錨點
