@@ -1,7 +1,6 @@
 package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 import java.time.LocalDateTime
 
 /**
@@ -208,6 +207,7 @@ data class PositionData(
 /**
  * 錨點雲端數據 - 支持完整的 MQTT 設備數據
  * 前端可能發送各種 MQTT 設備信息，所有字段都是可選的
+ * 注：其他額外字段將被 ignoreUnknownKeys 自動忽略
  */
 @Serializable
 data class AnchorCloudData(
@@ -217,12 +217,6 @@ data class AnchorCloudData(
     val name: String? = null,
     val node: String? = null,
     val content: String? = null,
-    
-    // 配置信息（支持 0/1 或 true/false）
-    val fw_update: JsonElement? = null,
-    val led: JsonElement? = null,
-    val ble: JsonElement? = null,
-    val initiator: JsonElement? = null,
     
     // 位置信息（可能嵌套在 cloudData 中）
     val position: PositionData? = null,
