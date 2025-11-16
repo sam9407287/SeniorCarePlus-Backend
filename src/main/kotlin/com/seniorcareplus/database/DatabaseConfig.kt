@@ -268,6 +268,18 @@ object DatabaseConfig {
                 logger.info("ℹ️  gateway_id 可能已是可選或遷移已執行: ${e.message}")
             }
             
+            // ==================== Anchors 表遷移（添加 last_seen） ====================
+            try {
+                // 為 anchors 表添加 last_seen 欄位
+                exec("""
+                    ALTER TABLE anchors
+                    ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP;
+                """)
+                logger.info("✅ 已添加 anchors.last_seen 欄位")
+            } catch (e: Exception) {
+                logger.info("ℹ️  last_seen 欄位可能已存在或遷移已執行: ${e.message}")
+            }
+            
             logger.info("✅ 數據庫遷移檢查完成")
         }
     }

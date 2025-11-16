@@ -189,6 +189,7 @@ data class AnchorData(
     val position: PositionData,
     val cloudData: AnchorCloudData? = null,
     val status: String = "offline",
+    val lastSeen: String? = null,        // ✨ 新增：最後上線時間
     val isBound: Boolean = false,        // 是否已綁定到 Gateway
     val createdAt: String
 )
@@ -204,21 +205,40 @@ data class PositionData(
 )
 
 /**
- * 錨點雲端數據
+ * 錨點雲端數據 - 支持完整的 MQTT 設備數據
+ * 前端可能發送各種 MQTT 設備信息，所有字段都是可選的
  */
 @Serializable
 data class AnchorCloudData(
-    val id: Int,
-    val name: String,
-    val config: AnchorConfig? = null
+    // 基本標識
+    val id: Int? = null,
+    val gateway_id: Int? = null,
+    val name: String? = null,
+    val node: String? = null,
+    val content: String? = null,
+    
+    // 配置信息
+    val fw_update: Boolean? = null,
+    val led: Boolean? = null,
+    val ble: Boolean? = null,
+    val initiator: Boolean? = null,
+    
+    // 位置信息（可能嵌套在 cloudData 中）
+    val position: PositionData? = null,
+    
+    // 時間戳
+    val receivedAt: String? = null
 )
 
+/**
+ * 錨點配置信息
+ */
 @Serializable
 data class AnchorConfig(
-    val fw_update: Boolean = false,
-    val led: Boolean = true,
-    val ble: Boolean = true,
-    val initiator: Boolean = false
+    val fw_update: Boolean? = null,
+    val led: Boolean? = null,
+    val ble: Boolean? = null,
+    val initiator: Boolean? = null
 )
 
 /**

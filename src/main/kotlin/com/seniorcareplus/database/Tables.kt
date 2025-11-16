@@ -51,8 +51,9 @@ object Anchors : IntIdTable("anchors") {
     val name = varchar("name", 200)
     val macAddress = varchar("mac_address", 50)
     val position = text("position")  // JSON: {x, y, z}
-    val cloudData = text("cloud_data").nullable()  // JSON: {id, name, config}
+    val cloudData = text("cloud_data").nullable()  // JSON: {id, name, config, fw_update, led, ble, etc.}
     val status = varchar("status", 50).default("offline")
+    val lastSeen = datetime("last_seen").nullable()  // ✨ 新增：最後上線時間
     val isBound = bool("is_bound").default(false)  // 標記是否已綁定到 Gateway
     val createdAt = datetime("created_at").default(LocalDateTime.now())
 }
