@@ -734,15 +734,26 @@ fun Route.fieldManagementRoutes() {
                 val request = call.receive<CreateAnchorRequest>()
                 val anchorId = "anchor_${System.currentTimeMillis()}"
                 
+                // 獲取位置信息（優先使用 request.position，其次使用 cloudData 中的 position）
+                val positionData = request.position ?: request.cloudData?.position ?: PositionData(0.0, 0.0, 0.0)
+                
                 transaction {
                     Anchors.insert {
                         it[Anchors.anchorId] = anchorId
-                        it[gatewayId] = null  // 初始未綁定
+                        it[gatewayId] = request.gatewayId
                         it[name] = request.name
                         it[macAddress] = request.macAddress
-                        it[position] = Json.encodeToString(request.position)
+                        it[position] = Json.encodeToString(positionData)
                         it[cloudData] = request.cloudData?.let { cd -> Json.encodeToString(cd) }
-                        it[isBound] = false
+                        it[status] = request.status ?: "offline"
+                        it[lastSeen] = request.lastSeen?.let { 
+                            try {
+                                java.time.LocalDateTime.parse(it)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        it[isBound] = request.gatewayId != null
                     }
                 }
                 
@@ -750,7 +761,7 @@ fun Route.fieldManagementRoutes() {
                     Anchors.select { Anchors.anchorId eq anchorId }.single().let { row ->
                         AnchorData(
                             id = row[Anchors.anchorId],
-                            gatewayId = null,
+                            gatewayId = row[Anchors.gatewayId],
                             homeId = null,
                             floorId = null,
                             name = row[Anchors.name],
@@ -758,7 +769,8 @@ fun Route.fieldManagementRoutes() {
                             position = row[Anchors.position].let { Json.decodeFromString(it) },
                             cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Anchors.status],
-                            isBound = false,
+                            lastSeen = row[Anchors.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            isBound = row[Anchors.isBound],
                             createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                         )
                     }

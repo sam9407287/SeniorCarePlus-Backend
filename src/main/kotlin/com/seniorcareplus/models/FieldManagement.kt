@@ -244,13 +244,17 @@ data class AnchorConfig(
 /**
  * 創建錨點請求
  * Anchor 初始創建時不綁定到 Gateway
+ * 支持前端發送的完整 MQTT 數據格式
  */
 @Serializable
 data class CreateAnchorRequest(
     val name: String,
     val macAddress: String,
-    val position: PositionData,
-    val cloudData: AnchorCloudData? = null
+    val position: PositionData? = null,  // ✨ 改為可選，因為位置信息可能在 cloudData 中
+    val cloudData: AnchorCloudData? = null,
+    val gatewayId: String? = null,       // ✨ 新增：支持創建時直接綁定
+    val status: String? = null,          // ✨ 新增：支持狀態
+    val lastSeen: String? = null         // ✨ 新增：支持最後上線時間
 )
 
 /**
