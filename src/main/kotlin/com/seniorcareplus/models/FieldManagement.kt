@@ -1,6 +1,7 @@
 package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import java.time.LocalDateTime
 
 /**
@@ -240,13 +241,15 @@ data class AnchorConfig(
  * 創建錨點請求
  * Anchor 初始創建時不綁定到 Gateway
  * 支持前端發送的完整 MQTT 數據格式
+ * 
+ * 方案2：使用 JsonElement 接收 cloudData，避免類型不匹配問題
  */
 @Serializable
 data class CreateAnchorRequest(
     val name: String,
     val macAddress: String,
     val position: PositionData? = null,  // ✨ 改為可選，因為位置信息可能在 cloudData 中
-    val cloudData: AnchorCloudData? = null,
+    val cloudData: JsonElement? = null,  // ✨ 方案2：使用 JsonElement 接收原始 JSON，不檢查類型
     val gatewayId: String? = null,       // ✨ 新增：支持創建時直接綁定
     val status: String? = null,          // ✨ 新增：支持狀態
     val lastSeen: String? = null         // ✨ 新增：支持最後上線時間
@@ -254,13 +257,14 @@ data class CreateAnchorRequest(
 
 /**
  * 更新錨點請求
+ * 方案2：使用 JsonElement 接收 cloudData
  */
 @Serializable
 data class UpdateAnchorRequest(
     val name: String? = null,
     val macAddress: String? = null,
     val position: PositionData? = null,
-    val cloudData: AnchorCloudData? = null,
+    val cloudData: JsonElement? = null,  // ✨ 方案2：使用 JsonElement 接收原始 JSON
     val status: String? = null
 )
 

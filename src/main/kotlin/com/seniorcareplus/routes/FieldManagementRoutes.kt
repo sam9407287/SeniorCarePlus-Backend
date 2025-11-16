@@ -9,6 +9,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.parseToJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -734,8 +737,20 @@ fun Route.fieldManagementRoutes() {
                 val request = call.receive<CreateAnchorRequest>()
                 val anchorId = "anchor_${System.currentTimeMillis()}"
                 
-                // 獲取位置信息（優先使用 request.position，其次使用 cloudData 中的 position）
-                val positionData = request.position ?: request.cloudData?.position ?: PositionData(0.0, 0.0, 0.0)
+                // 獲取位置信息（優先使用 request.position，其次嘗試從 cloudData 中提取）
+                val positionData = request.position ?: run {
+                    // 嘗試從 cloudData JsonElement 中提取 position
+                    request.cloudData?.let { jsonElement ->
+                        try {
+                            val jsonObject = jsonElement.jsonObject
+                            jsonObject["position"]?.let { posJson ->
+                                Json.decodeFromString<PositionData>(posJson.toString())
+                            }
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                } ?: PositionData(0.0, 0.0, 0.0)
                 
                 transaction {
                     Anchors.insert {
@@ -744,6 +759,7 @@ fun Route.fieldManagementRoutes() {
                         it[name] = request.name
                         it[macAddress] = request.macAddress
                         it[position] = Json.encodeToString(positionData)
+                        // ✨ 方案2：將 JsonElement 直接轉為字符串存儲
                         it[cloudData] = request.cloudData?.let { cd -> Json.encodeToString(cd) }
                         it[status] = request.status ?: "offline"
                         it[lastSeen] = request.lastSeen?.let { 
@@ -767,7 +783,31 @@ fun Route.fieldManagementRoutes() {
                             name = row[Anchors.name],
                             macAddress = row[Anchors.macAddress],
                             position = row[Anchors.position].let { Json.decodeFromString(it) },
-                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
+                            // ✨ 方案2：嘗試解析為 AnchorCloudData，失敗則返回 null（保留原始 JSON 字符串）
+                            cloudData = row[Anchors.cloudData]?.let { jsonStr ->
+                                try {
+                                    Json.decodeFromString<AnchorCloudData>(jsonStr)
+                                } catch (e: Exception) {
+                                    // 如果解析失敗，嘗試解析為 JsonElement 再轉回 AnchorCloudData（只提取已知字段）
+                                    try {
+                                        val jsonElement = Json.parseToJsonElement(jsonStr)
+                                        // 只提取我們知道的字段
+                                        AnchorCloudData(
+                                            id = jsonElement.jsonObject["id"]?.jsonPrimitive?.intOrNull,
+                                            gateway_id = jsonElement.jsonObject["gateway_id"]?.jsonPrimitive?.intOrNull,
+                                            name = jsonElement.jsonObject["name"]?.jsonPrimitive?.contentOrNull,
+                                            node = jsonElement.jsonObject["node"]?.jsonPrimitive?.contentOrNull,
+                                            content = jsonElement.jsonObject["content"]?.jsonPrimitive?.contentOrNull,
+                                            position = jsonElement.jsonObject["position"]?.let { 
+                                                Json.decodeFromString<PositionData>(it.toString()) 
+                                            },
+                                            receivedAt = jsonElement.jsonObject["receivedAt"]?.jsonPrimitive?.contentOrNull
+                                        )
+                                    } catch (e2: Exception) {
+                                        null
+                                    }
+                                }
+                            },
                             status = row[Anchors.status],
                             lastSeen = row[Anchors.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             isBound = row[Anchors.isBound],
