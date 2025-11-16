@@ -1,6 +1,7 @@
 package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import java.time.LocalDateTime
 
 /**
@@ -217,11 +218,11 @@ data class AnchorCloudData(
     val node: String? = null,
     val content: String? = null,
     
-    // 配置信息
-    val fw_update: Boolean? = null,
-    val led: Boolean? = null,
-    val ble: Boolean? = null,
-    val initiator: Boolean? = null,
+    // 配置信息（支持 0/1 或 true/false）
+    val fw_update: JsonElement? = null,
+    val led: JsonElement? = null,
+    val ble: JsonElement? = null,
+    val initiator: JsonElement? = null,
     
     // 位置信息（可能嵌套在 cloudData 中）
     val position: PositionData? = null,
