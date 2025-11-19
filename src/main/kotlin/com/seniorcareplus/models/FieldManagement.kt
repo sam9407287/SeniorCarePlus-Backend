@@ -2,7 +2,6 @@ package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.Contextual
 import java.time.LocalDateTime
 
 /**
@@ -283,7 +282,6 @@ data class PositionData(
 /**
  * 錨點數據 v2 - 平坦化格式
  * 支持 cloudData 加前綴的格式（如 cloudDataGatewayId, cloudDataPosition 等）
- * 使用 @JsonAnySetter 和 @JsonAnyGetter 處理動態字段
  */
 @Serializable
 data class AnchorCloudData(
@@ -304,11 +302,7 @@ data class AnchorCloudData(
     val position: PositionData? = null,
     
     // 時間戳
-    val receivedAt: String? = null,
-    
-    // 通用字段容器（用於存儲其他 cloudData 加前綴字段）
-    @Contextual
-    val extraFields: Map<String, Any?>? = null
+    val receivedAt: String? = null
 )
 
 /**
