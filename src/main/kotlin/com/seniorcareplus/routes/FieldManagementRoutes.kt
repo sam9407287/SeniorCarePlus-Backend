@@ -805,7 +805,7 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 根據ID獲取單個錨點
+        // 根據ID獲取單個錨點 - 返回新格式
         get("/anchors/{id}") {
             try {
                 val id = call.parameters["id"] ?: return@get call.respond(
@@ -834,16 +834,17 @@ fun Route.fieldManagementRoutes() {
                             Pair(null, null)
                         }
                         
-                        AnchorData(
+                        DataTransformationHelper.convertStoredJsonToAnchorData(
                             id = row[Anchors.anchorId],
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = Json.decodeFromString(row[Anchors.position]),
+                            cloudDataJson = row[Anchors.cloudData],
                             gatewayId = gatewayId,
                             homeId = homeId,
                             floorId = floorId,
-                            name = row[Anchors.name],
-                            macAddress = row[Anchors.macAddress],
-                            position = row[Anchors.position].let { Json.decodeFromString(it) },
-                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Anchors.status],
+                            lastSeen = row[Anchors.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             isBound = row[Anchors.isBound],
                             createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                         )
@@ -866,7 +867,7 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 更新錨點
+        // 更新錨點 - 接收新格式並轉換存儲
         put("/anchors/{id}") {
             try {
                 val id = call.parameters["id"] ?: return@put call.respond(
@@ -881,12 +882,24 @@ fun Route.fieldManagementRoutes() {
                         return@transaction null
                     }
                     
+                    // 轉換 cloudData
+                    val cloudDataJson = DataTransformationHelper.convertUpdateAnchorRequestToCloudDataJson(request)
+                    
                     Anchors.update({ Anchors.anchorId eq id }) {
                         request.name?.let { name -> it[Anchors.name] = name }
                         request.macAddress?.let { mac -> it[macAddress] = mac }
                         request.position?.let { pos -> it[position] = Json.encodeToString(pos) }
-                        request.cloudData?.let { cd -> it[cloudData] = Json.encodeToString(cd) }
+                        if (cloudDataJson != null) {
+                            it[cloudData] = cloudDataJson
+                        }
                         request.status?.let { st -> it[status] = st }
+                        request.lastSeen?.let { ls ->
+                            it[lastSeen] = try {
+                                LocalDateTime.parse(ls)
+                            } catch (e: Exception) {
+                                LocalDateTime.now()
+                            }
+                        }
                     }
                     
                     Anchors.select { Anchors.anchorId eq id }.single().let { row ->
@@ -909,16 +922,17 @@ fun Route.fieldManagementRoutes() {
                             Pair(null, null)
                         }
                         
-                        AnchorData(
+                        DataTransformationHelper.convertStoredJsonToAnchorData(
                             id = row[Anchors.anchorId],
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = Json.decodeFromString(row[Anchors.position]),
+                            cloudDataJson = row[Anchors.cloudData],
                             gatewayId = gatewayId,
                             homeId = homeId,
                             floorId = floorId,
-                            name = row[Anchors.name],
-                            macAddress = row[Anchors.macAddress],
-                            position = row[Anchors.position].let { Json.decodeFromString(it) },
-                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Anchors.status],
+                            lastSeen = row[Anchors.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             isBound = row[Anchors.isBound],
                             createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                         )
