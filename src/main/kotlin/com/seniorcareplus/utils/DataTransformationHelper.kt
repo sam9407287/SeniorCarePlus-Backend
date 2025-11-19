@@ -155,19 +155,25 @@ object DataTransformationHelper {
             request.cloudDataCurrent?.let { put("current", it) }
             request.cloudDataReceivedAt?.let { put("receivedAt", it) }
             
-            request.cloudDataUwbTxPower?.let { 
-                putJsonObject("uwb_tx_power") {
-                    it.forEach { (k, v) -> put(k, v) }
+            request.cloudDataUwbTxPower?.let { element ->
+                if (element is JsonObject) {
+                    putJsonObject("uwb_tx_power") {
+                        element.forEach { (k, v) -> put(k, v) }
+                    }
                 }
             }
-            request.cloudDataPubTopic?.let { 
-                putJsonObject("pub_topic") {
-                    it.forEach { (k, v) -> put(k, v) }
+            request.cloudDataPubTopic?.let { element ->
+                if (element is JsonObject) {
+                    putJsonObject("pub_topic") {
+                        element.forEach { (k, v) -> put(k, v) }
+                    }
                 }
             }
-            request.cloudDataSubTopic?.let { 
-                putJsonObject("sub_topic") {
-                    it.forEach { (k, v) -> put(k, v) }
+            request.cloudDataSubTopic?.let { element ->
+                if (element is JsonObject) {
+                    putJsonObject("sub_topic") {
+                        element.forEach { (k, v) -> put(k, v) }
+                    }
                 }
             }
         }
@@ -233,19 +239,25 @@ object DataTransformationHelper {
             request.cloudDataCurrent?.let { put("current", it) }
             request.cloudDataReceivedAt?.let { put("receivedAt", it) }
             
-            request.cloudDataUwbTxPower?.let { 
-                putJsonObject("uwb_tx_power") {
-                    it.forEach { (k, v) -> put(k, v) }
+            request.cloudDataUwbTxPower?.let { element ->
+                if (element is JsonObject) {
+                    putJsonObject("uwb_tx_power") {
+                        element.forEach { (k, v) -> put(k, v) }
+                    }
                 }
             }
-            request.cloudDataPubTopic?.let { 
-                putJsonObject("pub_topic") {
-                    it.forEach { (k, v) -> put(k, v) }
+            request.cloudDataPubTopic?.let { element ->
+                if (element is JsonObject) {
+                    putJsonObject("pub_topic") {
+                        element.forEach { (k, v) -> put(k, v) }
+                    }
                 }
             }
-            request.cloudDataSubTopic?.let { 
-                putJsonObject("sub_topic") {
-                    it.forEach { (k, v) -> put(k, v) }
+            request.cloudDataSubTopic?.let { element ->
+                if (element is JsonObject) {
+                    putJsonObject("sub_topic") {
+                        element.forEach { (k, v) -> put(k, v) }
+                    }
                 }
             }
         }
