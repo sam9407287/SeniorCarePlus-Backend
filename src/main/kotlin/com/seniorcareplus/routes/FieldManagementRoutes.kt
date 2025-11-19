@@ -705,7 +705,7 @@ fun Route.fieldManagementRoutes() {
         
         // ==================== Anchors 路由 ====================
         
-        // 獲取所有錨點
+        // 獲取所有錨點 - 返回新格式
         get("/anchors") {
             try {
                 val anchors = transaction {
@@ -729,16 +729,17 @@ fun Route.fieldManagementRoutes() {
                             Pair(null, null)
                         }
                         
-                        AnchorData(
+                        DataTransformationHelper.convertStoredJsonToAnchorData(
                             id = row[Anchors.anchorId],
+                            name = row[Anchors.name],
+                            macAddress = row[Anchors.macAddress],
+                            position = Json.decodeFromString(row[Anchors.position]),
+                            cloudDataJson = row[Anchors.cloudData],
                             gatewayId = gatewayId,
                             homeId = homeId,
                             floorId = floorId,
-                            name = row[Anchors.name],
-                            macAddress = row[Anchors.macAddress],
-                            position = row[Anchors.position].let { Json.decodeFromString(it) },
-                            cloudData = row[Anchors.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Anchors.status],
+                            lastSeen = row[Anchors.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             isBound = row[Anchors.isBound],
                             createdAt = row[Anchors.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                         )
@@ -753,26 +754,14 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 創建錨點（初始狀態未綁定）
+        // 創建錨點 - 接收新格式（cloudData 加前綴）
         post("/anchors") {
             try {
                 val request = call.receive<CreateAnchorRequest>()
-                val anchorId = "anchor_${System.currentTimeMillis()}"
+                val anchorId = request.id ?: "anchor_${System.currentTimeMillis()}"
                 
-                // 獲取位置信息（優先使用 request.position，其次嘗試從 cloudData 中提取）
-                val positionData = request.position ?: run {
-                    // 嘗試從 cloudData JsonElement 中提取 position
-                    request.cloudData?.let { jsonElement ->
-                        try {
-                            val jsonObject = jsonElement.jsonObject
-                            jsonObject["position"]?.let { posJson ->
-                                Json.decodeFromString<PositionData>(posJson.toString())
-                            }
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-                } ?: PositionData(0.0, 0.0, 0.0)
+                // 使用轉換工具將新格式轉換為存儲格式
+                val cloudDataJson = DataTransformationHelper.convertCreateAnchorRequestToCloudDataJson(request)
                 
                 transaction {
                     Anchors.insert {
@@ -780,16 +769,11 @@ fun Route.fieldManagementRoutes() {
                         it[gatewayId] = request.gatewayId
                         it[name] = request.name
                         it[macAddress] = request.macAddress
-                        it[position] = Json.encodeToString(positionData)
-                        // ✨ 方案2：將 JsonElement 直接轉為字符串存儲
-                        it[cloudData] = request.cloudData?.let { cd -> Json.encodeToString(cd) }
+                        it[position] = Json.encodeToString(request.position ?: PositionData(0.0, 0.0, 0.0))
+                        it[cloudData] = cloudDataJson
                         it[status] = request.status ?: "offline"
-                        it[lastSeen] = request.lastSeen?.let { 
-                            try {
-                                java.time.LocalDateTime.parse(it)
-                            } catch (e: Exception) {
-                                null
-                            }
+                        it[lastSeen] = request.lastSeen?.let {
+                            try { LocalDateTime.parse(it) } catch (e: Exception) { null }
                         }
                         it[isBound] = request.gatewayId != null
                     }
@@ -797,39 +781,13 @@ fun Route.fieldManagementRoutes() {
                 
                 val newAnchor = transaction {
                     Anchors.select { Anchors.anchorId eq anchorId }.single().let { row ->
-                        AnchorData(
+                        DataTransformationHelper.convertStoredJsonToAnchorData(
                             id = row[Anchors.anchorId],
-                            gatewayId = row[Anchors.gatewayId],
-                            homeId = null,
-                            floorId = null,
                             name = row[Anchors.name],
                             macAddress = row[Anchors.macAddress],
-                            position = row[Anchors.position].let { Json.decodeFromString(it) },
-                            // ✨ 方案2：嘗試解析為 AnchorCloudData，失敗則返回 null（保留原始 JSON 字符串）
-                            cloudData = row[Anchors.cloudData]?.let { jsonStr ->
-                                try {
-                                    Json.decodeFromString<AnchorCloudData>(jsonStr)
-                                } catch (e: Exception) {
-                                    // 如果解析失敗，嘗試解析為 JsonElement 再轉回 AnchorCloudData（只提取已知字段）
-                                    try {
-                                        val jsonElement = Json.parseToJsonElement(jsonStr)
-                                        // 只提取我們知道的字段
-                                        AnchorCloudData(
-                                            id = jsonElement.jsonObject["id"]?.jsonPrimitive?.intOrNull,
-                                            gateway_id = jsonElement.jsonObject["gateway_id"]?.jsonPrimitive?.intOrNull,
-                                            name = jsonElement.jsonObject["name"]?.jsonPrimitive?.contentOrNull,
-                                            node = jsonElement.jsonObject["node"]?.jsonPrimitive?.contentOrNull,
-                                            content = jsonElement.jsonObject["content"]?.jsonPrimitive?.contentOrNull,
-                                            position = jsonElement.jsonObject["position"]?.let { 
-                                                Json.decodeFromString<PositionData>(it.toString()) 
-                                            },
-                                            receivedAt = jsonElement.jsonObject["receivedAt"]?.jsonPrimitive?.contentOrNull
-                                        )
-                                    } catch (e2: Exception) {
-                                        null
-                                    }
-                                }
-                            },
+                            position = Json.decodeFromString(row[Anchors.position]),
+                            cloudDataJson = row[Anchors.cloudData],
+                            gatewayId = row[Anchors.gatewayId],
                             status = row[Anchors.status],
                             lastSeen = row[Anchors.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             isBound = row[Anchors.isBound],

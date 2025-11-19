@@ -11,10 +11,8 @@ object DataTransformationHelper {
     
     /**
      * 將 CreateAnchorRequest 轉換為存儲用的 JSON 字符串
-     * 返回：{ cloudData: {...所有cloudData加前綴字段...} } 的 JSON 字符串
      */
     fun convertCreateAnchorRequestToCloudDataJson(request: CreateAnchorRequest): String? {
-        // 如果沒有任何 cloudData 加前綴字段，返回 null
         val hasCloudData = listOfNotNull(
             request.cloudDataContent,
             request.cloudDataGatewayId,
@@ -31,32 +29,28 @@ object DataTransformationHelper {
         
         if (!hasCloudData) return null
         
-        // 構建 cloudData 對象
-        val cloudDataMap = mutableMapOf<String, Any?>()
-        
-        // 添加標量值字段
-        request.cloudDataContent?.let { cloudDataMap["content"] = it }
-        request.cloudDataGatewayId?.let { cloudDataMap["gateway_id"] = it }
-        request.cloudDataNode?.let { cloudDataMap["node"] = it }
-        request.cloudDataName?.let { cloudDataMap["name"] = it }
-        request.cloudDataId?.let { cloudDataMap["id"] = it }
-        request.cloudDataFwUpdate?.let { cloudDataMap["fw_update"] = it }
-        request.cloudDataLed?.let { cloudDataMap["led"] = it }
-        request.cloudDataBle?.let { cloudDataMap["ble"] = it }
-        request.cloudDataInitiator?.let { cloudDataMap["initiator"] = it }
-        request.cloudDataReceivedAt?.let { cloudDataMap["receivedAt"] = it }
-        
-        // 添加位置字段（物件）
-        request.cloudDataPosition?.let { 
-            cloudDataMap["position"] = mapOf(
-                "x" to it.x,
-                "y" to it.y,
-                "z" to it.z
-            )
+        val cloudDataMap = buildJsonObject {
+            request.cloudDataContent?.let { put("content", it) }
+            request.cloudDataGatewayId?.let { put("gateway_id", it) }
+            request.cloudDataNode?.let { put("node", it) }
+            request.cloudDataName?.let { put("name", it) }
+            request.cloudDataId?.let { put("id", it) }
+            request.cloudDataFwUpdate?.let { put("fw_update", it) }
+            request.cloudDataLed?.let { put("led", it) }
+            request.cloudDataBle?.let { put("ble", it) }
+            request.cloudDataInitiator?.let { put("initiator", it) }
+            request.cloudDataReceivedAt?.let { put("receivedAt", it) }
+            
+            request.cloudDataPosition?.let { 
+                putJsonObject("position") {
+                    put("x", it.x)
+                    put("y", it.y)
+                    put("z", it.z)
+                }
+            }
         }
         
-        // 轉換為 JSON 字符串
-        return Json.encodeToString(cloudDataMap)
+        return cloudDataMap.toString()
     }
     
     /**
@@ -79,28 +73,28 @@ object DataTransformationHelper {
         
         if (!hasCloudData) return null
         
-        val cloudDataMap = mutableMapOf<String, Any?>()
-        
-        request.cloudDataContent?.let { cloudDataMap["content"] = it }
-        request.cloudDataGatewayId?.let { cloudDataMap["gateway_id"] = it }
-        request.cloudDataNode?.let { cloudDataMap["node"] = it }
-        request.cloudDataName?.let { cloudDataMap["name"] = it }
-        request.cloudDataId?.let { cloudDataMap["id"] = it }
-        request.cloudDataFwUpdate?.let { cloudDataMap["fw_update"] = it }
-        request.cloudDataLed?.let { cloudDataMap["led"] = it }
-        request.cloudDataBle?.let { cloudDataMap["ble"] = it }
-        request.cloudDataInitiator?.let { cloudDataMap["initiator"] = it }
-        request.cloudDataReceivedAt?.let { cloudDataMap["receivedAt"] = it }
-        
-        request.cloudDataPosition?.let { 
-            cloudDataMap["position"] = mapOf(
-                "x" to it.x,
-                "y" to it.y,
-                "z" to it.z
-            )
+        val cloudDataMap = buildJsonObject {
+            request.cloudDataContent?.let { put("content", it) }
+            request.cloudDataGatewayId?.let { put("gateway_id", it) }
+            request.cloudDataNode?.let { put("node", it) }
+            request.cloudDataName?.let { put("name", it) }
+            request.cloudDataId?.let { put("id", it) }
+            request.cloudDataFwUpdate?.let { put("fw_update", it) }
+            request.cloudDataLed?.let { put("led", it) }
+            request.cloudDataBle?.let { put("ble", it) }
+            request.cloudDataInitiator?.let { put("initiator", it) }
+            request.cloudDataReceivedAt?.let { put("receivedAt", it) }
+            
+            request.cloudDataPosition?.let { 
+                putJsonObject("position") {
+                    put("x", it.x)
+                    put("y", it.y)
+                    put("z", it.z)
+                }
+            }
         }
         
-        return Json.encodeToString(cloudDataMap)
+        return cloudDataMap.toString()
     }
     
     /**
@@ -137,35 +131,126 @@ object DataTransformationHelper {
         
         if (!hasCloudData) return null
         
-        val cloudDataMap = mutableMapOf<String, Any?>()
+        val cloudDataMap = buildJsonObject {
+            request.cloudDataContent?.let { put("content", it) }
+            request.cloudDataGatewayId?.let { put("gateway_id", it) }
+            request.cloudDataFwVer?.let { put("fw_ver", it) }
+            request.cloudDataFwSerial?.let { put("fw_serial", it) }
+            request.cloudDataUwbHwComOk?.let { put("uwb_hw_com_ok", it) }
+            request.cloudDataUwbJoined?.let { put("uwb_joined", it) }
+            request.cloudDataUwbNetworkId?.let { put("uwb_network_id", it) }
+            request.cloudDataConnectedAp?.let { put("connected_ap", it) }
+            request.cloudDataWifiTxPower?.let { put("wifi_tx_power", it) }
+            request.cloudDataSetWifiMaxTxPower?.let { put("set_wifi_max_tx_power", it) }
+            request.cloudDataBleScanTime?.let { put("ble_scan_time", it) }
+            request.cloudDataBleScanPauseTime?.let { put("ble_scan_pause_time", it) }
+            request.cloudDataBatteryVoltage?.let { put("battery_voltage", it) }
+            request.cloudDataFiveVPlugged?.let { put("five_v_plugged", it) }
+            request.cloudDataUwbTxPowerChanged?.let { put("uwb_tx_power_changed", it) }
+            request.cloudDataDiscardIotDataTime?.let { put("discard_iot_data_time", it) }
+            request.cloudDataDiscardedIotData?.let { put("discarded_iot_data", it) }
+            request.cloudDataTotalDiscardedData?.let { put("total_discarded_data", it) }
+            request.cloudDataFirstSync?.let { put("first_sync", it) }
+            request.cloudDataLastSync?.let { put("last_sync", it) }
+            request.cloudDataCurrent?.let { put("current", it) }
+            request.cloudDataReceivedAt?.let { put("receivedAt", it) }
+            
+            request.cloudDataUwbTxPower?.let { 
+                putJsonObject("uwb_tx_power") {
+                    it.forEach { (k, v) -> put(k, v) }
+                }
+            }
+            request.cloudDataPubTopic?.let { 
+                putJsonObject("pub_topic") {
+                    it.forEach { (k, v) -> put(k, v) }
+                }
+            }
+            request.cloudDataSubTopic?.let { 
+                putJsonObject("sub_topic") {
+                    it.forEach { (k, v) -> put(k, v) }
+                }
+            }
+        }
         
-        request.cloudDataContent?.let { cloudDataMap["content"] = it }
-        request.cloudDataGatewayId?.let { cloudDataMap["gateway_id"] = it }
-        request.cloudDataFwVer?.let { cloudDataMap["fw_ver"] = it }
-        request.cloudDataFwSerial?.let { cloudDataMap["fw_serial"] = it }
-        request.cloudDataUwbHwComOk?.let { cloudDataMap["uwb_hw_com_ok"] = it }
-        request.cloudDataUwbJoined?.let { cloudDataMap["uwb_joined"] = it }
-        request.cloudDataUwbNetworkId?.let { cloudDataMap["uwb_network_id"] = it }
-        request.cloudDataConnectedAp?.let { cloudDataMap["connected_ap"] = it }
-        request.cloudDataWifiTxPower?.let { cloudDataMap["wifi_tx_power"] = it }
-        request.cloudDataSetWifiMaxTxPower?.let { cloudDataMap["set_wifi_max_tx_power"] = it }
-        request.cloudDataBleScanTime?.let { cloudDataMap["ble_scan_time"] = it }
-        request.cloudDataBleScanPauseTime?.let { cloudDataMap["ble_scan_pause_time"] = it }
-        request.cloudDataBatteryVoltage?.let { cloudDataMap["battery_voltage"] = it }
-        request.cloudDataFiveVPlugged?.let { cloudDataMap["five_v_plugged"] = it }
-        request.cloudDataUwbTxPowerChanged?.let { cloudDataMap["uwb_tx_power_changed"] = it }
-        request.cloudDataDiscardIotDataTime?.let { cloudDataMap["discard_iot_data_time"] = it }
-        request.cloudDataDiscardedIotData?.let { cloudDataMap["discarded_iot_data"] = it }
-        request.cloudDataTotalDiscardedData?.let { cloudDataMap["total_discarded_data"] = it }
-        request.cloudDataFirstSync?.let { cloudDataMap["first_sync"] = it }
-        request.cloudDataLastSync?.let { cloudDataMap["last_sync"] = it }
-        request.cloudDataCurrent?.let { cloudDataMap["current"] = it }
-        request.cloudDataReceivedAt?.let { cloudDataMap["receivedAt"] = it }
-        request.cloudDataUwbTxPower?.let { cloudDataMap["uwb_tx_power"] = it }
-        request.cloudDataPubTopic?.let { cloudDataMap["pub_topic"] = it }
-        request.cloudDataSubTopic?.let { cloudDataMap["sub_topic"] = it }
+        return cloudDataMap.toString()
+    }
+    
+    /**
+     * 將 UpdateGatewayRequest 轉換為存儲用的 JSON 字符串
+     */
+    fun convertUpdateGatewayRequestToCloudDataJson(request: UpdateGatewayRequest): String? {
+        val hasCloudData = listOfNotNull(
+            request.cloudDataContent,
+            request.cloudDataGatewayId,
+            request.cloudDataFwVer,
+            request.cloudDataFwSerial,
+            request.cloudDataUwbHwComOk,
+            request.cloudDataUwbJoined,
+            request.cloudDataUwbNetworkId,
+            request.cloudDataConnectedAp,
+            request.cloudDataWifiTxPower,
+            request.cloudDataSetWifiMaxTxPower,
+            request.cloudDataBleScanTime,
+            request.cloudDataBleScanPauseTime,
+            request.cloudDataBatteryVoltage,
+            request.cloudDataFiveVPlugged,
+            request.cloudDataUwbTxPowerChanged,
+            request.cloudDataDiscardIotDataTime,
+            request.cloudDataDiscardedIotData,
+            request.cloudDataTotalDiscardedData,
+            request.cloudDataFirstSync,
+            request.cloudDataLastSync,
+            request.cloudDataCurrent,
+            request.cloudDataReceivedAt,
+            request.cloudDataUwbTxPower,
+            request.cloudDataPubTopic,
+            request.cloudDataSubTopic
+        ).isNotEmpty()
         
-        return Json.encodeToString(cloudDataMap)
+        if (!hasCloudData) return null
+        
+        val cloudDataMap = buildJsonObject {
+            request.cloudDataContent?.let { put("content", it) }
+            request.cloudDataGatewayId?.let { put("gateway_id", it) }
+            request.cloudDataFwVer?.let { put("fw_ver", it) }
+            request.cloudDataFwSerial?.let { put("fw_serial", it) }
+            request.cloudDataUwbHwComOk?.let { put("uwb_hw_com_ok", it) }
+            request.cloudDataUwbJoined?.let { put("uwb_joined", it) }
+            request.cloudDataUwbNetworkId?.let { put("uwb_network_id", it) }
+            request.cloudDataConnectedAp?.let { put("connected_ap", it) }
+            request.cloudDataWifiTxPower?.let { put("wifi_tx_power", it) }
+            request.cloudDataSetWifiMaxTxPower?.let { put("set_wifi_max_tx_power", it) }
+            request.cloudDataBleScanTime?.let { put("ble_scan_time", it) }
+            request.cloudDataBleScanPauseTime?.let { put("ble_scan_pause_time", it) }
+            request.cloudDataBatteryVoltage?.let { put("battery_voltage", it) }
+            request.cloudDataFiveVPlugged?.let { put("five_v_plugged", it) }
+            request.cloudDataUwbTxPowerChanged?.let { put("uwb_tx_power_changed", it) }
+            request.cloudDataDiscardIotDataTime?.let { put("discard_iot_data_time", it) }
+            request.cloudDataDiscardedIotData?.let { put("discarded_iot_data", it) }
+            request.cloudDataTotalDiscardedData?.let { put("total_discarded_data", it) }
+            request.cloudDataFirstSync?.let { put("first_sync", it) }
+            request.cloudDataLastSync?.let { put("last_sync", it) }
+            request.cloudDataCurrent?.let { put("current", it) }
+            request.cloudDataReceivedAt?.let { put("receivedAt", it) }
+            
+            request.cloudDataUwbTxPower?.let { 
+                putJsonObject("uwb_tx_power") {
+                    it.forEach { (k, v) -> put(k, v) }
+                }
+            }
+            request.cloudDataPubTopic?.let { 
+                putJsonObject("pub_topic") {
+                    it.forEach { (k, v) -> put(k, v) }
+                }
+            }
+            request.cloudDataSubTopic?.let { 
+                putJsonObject("sub_topic") {
+                    it.forEach { (k, v) -> put(k, v) }
+                }
+            }
+        }
+        
+        return cloudDataMap.toString()
     }
     
     /**
@@ -195,10 +280,9 @@ object DataTransformationHelper {
             createdAt = createdAt
         )
         
-        // 解析 cloudData JSON 並轉換為加前綴格式
         if (cloudDataJson != null) {
             return try {
-                val cloudData = Json.decodeFromString<Map<String, Any?>>(cloudDataJson)
+                val cloudData = Json.parseToJsonElement(cloudDataJson).jsonObject
                 convertCloudDataToGatewayDataWithPrefix(gateway, cloudData)
             } catch (e: Exception) {
                 gateway
@@ -239,10 +323,9 @@ object DataTransformationHelper {
             createdAt = createdAt
         )
         
-        // 解析 cloudData JSON 並轉換為加前綴格式
         if (cloudDataJson != null) {
             return try {
-                val cloudData = Json.decodeFromString<Map<String, Any?>>(cloudDataJson)
+                val cloudData = Json.parseToJsonElement(cloudDataJson).jsonObject
                 convertCloudDataToAnchorDataWithPrefix(anchor, cloudData)
             } catch (e: Exception) {
                 anchor
@@ -257,34 +340,40 @@ object DataTransformationHelper {
      */
     private fun convertCloudDataToGatewayDataWithPrefix(
         gateway: GatewayData,
-        cloudData: Map<String, Any?>
+        cloudData: JsonObject
     ): GatewayData {
         return gateway.copy(
-            cloudDataContent = (cloudData["content"] as? String),
-            cloudDataGatewayId = (cloudData["gateway_id"] as? Number)?.toInt(),
-            cloudDataFwVer = (cloudData["fw_ver"] as? String),
-            cloudDataFwSerial = (cloudData["fw_serial"] as? Number)?.toInt(),
-            cloudDataUwbHwComOk = (cloudData["uwb_hw_com_ok"] as? String),
-            cloudDataUwbJoined = (cloudData["uwb_joined"] as? String),
-            cloudDataUwbNetworkId = (cloudData["uwb_network_id"] as? Number)?.toInt(),
-            cloudDataConnectedAp = (cloudData["connected_ap"] as? String),
-            cloudDataWifiTxPower = (cloudData["wifi_tx_power"] as? Number)?.toInt(),
-            cloudDataSetWifiMaxTxPower = (cloudData["set_wifi_max_tx_power"] as? Number)?.toDouble(),
-            cloudDataBleScanTime = (cloudData["ble_scan_time"] as? Number)?.toInt(),
-            cloudDataBleScanPauseTime = (cloudData["ble_scan_pause_time"] as? Number)?.toInt(),
-            cloudDataBatteryVoltage = (cloudData["battery_voltage"] as? Number)?.toDouble(),
-            cloudDataFiveVPlugged = (cloudData["five_v_plugged"] as? String),
-            cloudDataUwbTxPowerChanged = (cloudData["uwb_tx_power_changed"] as? String),
-            cloudDataDiscardIotDataTime = (cloudData["discard_iot_data_time"] as? Number)?.toInt(),
-            cloudDataDiscardedIotData = (cloudData["discarded_iot_data"] as? Number)?.toInt(),
-            cloudDataTotalDiscardedData = (cloudData["total_discarded_data"] as? Number)?.toInt(),
-            cloudDataFirstSync = (cloudData["first_sync"] as? String),
-            cloudDataLastSync = (cloudData["last_sync"] as? String),
-            cloudDataCurrent = (cloudData["current"] as? String),
-            cloudDataReceivedAt = (cloudData["receivedAt"] as? String),
-            cloudDataUwbTxPower = (cloudData["uwb_tx_power"] as? Map<String, Double>),
-            cloudDataPubTopic = (cloudData["pub_topic"] as? Map<String, String>),
-            cloudDataSubTopic = (cloudData["sub_topic"] as? Map<String, String>)
+            cloudDataContent = cloudData["content"]?.jsonPrimitive?.contentOrNull,
+            cloudDataGatewayId = cloudData["gateway_id"]?.jsonPrimitive?.intOrNull,
+            cloudDataFwVer = cloudData["fw_ver"]?.jsonPrimitive?.contentOrNull,
+            cloudDataFwSerial = cloudData["fw_serial"]?.jsonPrimitive?.intOrNull,
+            cloudDataUwbHwComOk = cloudData["uwb_hw_com_ok"]?.jsonPrimitive?.contentOrNull,
+            cloudDataUwbJoined = cloudData["uwb_joined"]?.jsonPrimitive?.contentOrNull,
+            cloudDataUwbNetworkId = cloudData["uwb_network_id"]?.jsonPrimitive?.intOrNull,
+            cloudDataConnectedAp = cloudData["connected_ap"]?.jsonPrimitive?.contentOrNull,
+            cloudDataWifiTxPower = cloudData["wifi_tx_power"]?.jsonPrimitive?.intOrNull,
+            cloudDataSetWifiMaxTxPower = cloudData["set_wifi_max_tx_power"]?.jsonPrimitive?.doubleOrNull,
+            cloudDataBleScanTime = cloudData["ble_scan_time"]?.jsonPrimitive?.intOrNull,
+            cloudDataBleScanPauseTime = cloudData["ble_scan_pause_time"]?.jsonPrimitive?.intOrNull,
+            cloudDataBatteryVoltage = cloudData["battery_voltage"]?.jsonPrimitive?.doubleOrNull,
+            cloudDataFiveVPlugged = cloudData["five_v_plugged"]?.jsonPrimitive?.contentOrNull,
+            cloudDataUwbTxPowerChanged = cloudData["uwb_tx_power_changed"]?.jsonPrimitive?.contentOrNull,
+            cloudDataDiscardIotDataTime = cloudData["discard_iot_data_time"]?.jsonPrimitive?.intOrNull,
+            cloudDataDiscardedIotData = cloudData["discarded_iot_data"]?.jsonPrimitive?.intOrNull,
+            cloudDataTotalDiscardedData = cloudData["total_discarded_data"]?.jsonPrimitive?.intOrNull,
+            cloudDataFirstSync = cloudData["first_sync"]?.jsonPrimitive?.contentOrNull,
+            cloudDataLastSync = cloudData["last_sync"]?.jsonPrimitive?.contentOrNull,
+            cloudDataCurrent = cloudData["current"]?.jsonPrimitive?.contentOrNull,
+            cloudDataReceivedAt = cloudData["receivedAt"]?.jsonPrimitive?.contentOrNull,
+            cloudDataUwbTxPower = cloudData["uwb_tx_power"]?.jsonObject?.let { obj ->
+                obj.mapValues { (_, v) -> v.jsonPrimitive.double }
+            },
+            cloudDataPubTopic = cloudData["pub_topic"]?.jsonObject?.let { obj ->
+                obj.mapValues { (_, v) -> v.jsonPrimitive.content }
+            },
+            cloudDataSubTopic = cloudData["sub_topic"]?.jsonObject?.let { obj ->
+                obj.mapValues { (_, v) -> v.jsonPrimitive.content }
+            }
         )
     }
     
@@ -293,29 +382,28 @@ object DataTransformationHelper {
      */
     private fun convertCloudDataToAnchorDataWithPrefix(
         anchor: AnchorData,
-        cloudData: Map<String, Any?>
+        cloudData: JsonObject
     ): AnchorData {
         return anchor.copy(
             cloudData = AnchorCloudData(
-                id = (cloudData["id"] as? Number)?.toInt(),
-                gatewayId = (cloudData["gateway_id"] as? Number)?.toInt(),
-                node = (cloudData["node"] as? String),
-                name = (cloudData["name"] as? String),
-                content = (cloudData["content"] as? String),
-                fwUpdate = (cloudData["fw_update"] as? Number)?.toInt(),
-                led = (cloudData["led"] as? Number)?.toInt(),
-                ble = (cloudData["ble"] as? Number)?.toInt(),
-                initiator = (cloudData["initiator"] as? Number)?.toInt(),
-                position = (cloudData["position"] as? Map<String, Number>)?.let {
+                id = cloudData["id"]?.jsonPrimitive?.intOrNull,
+                gatewayId = cloudData["gateway_id"]?.jsonPrimitive?.intOrNull,
+                node = cloudData["node"]?.jsonPrimitive?.contentOrNull,
+                name = cloudData["name"]?.jsonPrimitive?.contentOrNull,
+                content = cloudData["content"]?.jsonPrimitive?.contentOrNull,
+                fwUpdate = cloudData["fw_update"]?.jsonPrimitive?.intOrNull,
+                led = cloudData["led"]?.jsonPrimitive?.intOrNull,
+                ble = cloudData["ble"]?.jsonPrimitive?.intOrNull,
+                initiator = cloudData["initiator"]?.jsonPrimitive?.intOrNull,
+                position = cloudData["position"]?.jsonObject?.let {
                     PositionData(
-                        x = (it["x"] as? Number)?.toDouble() ?: 0.0,
-                        y = (it["y"] as? Number)?.toDouble() ?: 0.0,
-                        z = (it["z"] as? Number)?.toDouble() ?: 0.0
+                        x = it["x"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                        y = it["y"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                        z = it["z"]?.jsonPrimitive?.doubleOrNull ?: 0.0
                     )
                 },
-                receivedAt = (cloudData["receivedAt"] as? String)
+                receivedAt = cloudData["receivedAt"]?.jsonPrimitive?.contentOrNull
             )
         )
     }
 }
-
