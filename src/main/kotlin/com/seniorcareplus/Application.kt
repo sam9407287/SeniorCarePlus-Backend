@@ -5,6 +5,7 @@ import com.seniorcareplus.routes.healthRoutes
 import com.seniorcareplus.routes.webSocketRoutes
 import com.seniorcareplus.routes.fieldManagementRoutes
 import com.seniorcareplus.routes.anchorBindingRoutes
+import com.seniorcareplus.routes.flattenedDeviceRoutes
 import com.seniorcareplus.services.MqttService
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -150,8 +151,11 @@ fun Application.module() {
         // API路由
         healthRoutes()
         
-        // 場域管理路由 (Homes, Floors, Gateways, Anchors, Tags)
+        // 場域管理路由 (Homes, Floors, Gateways, Anchors, Tags) - 舊格式
         fieldManagementRoutes()
+        
+        // 平坦化設備路由 (新格式) - 與前端新格式對應
+        flattenedDeviceRoutes()
         
         // Anchor-Gateway 綁定路由
         anchorBindingRoutes()

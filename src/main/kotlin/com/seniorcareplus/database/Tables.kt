@@ -35,6 +35,7 @@ object Gateways : IntIdTable("gateways") {
     val floorId = varchar("floor_id", 100).references(Floors.floorId, onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", 200)
     val macAddress = varchar("mac_address", 50)
+    val ipAddress = varchar("ip_address", 50).nullable()  // IP 地址
     val firmwareVersion = varchar("firmware_version", 50).nullable()
     val cloudData = text("cloud_data").nullable()  // JSON: {gateway_id, sub_topic, etc.}
     val status = varchar("status", 50).default("offline")  // online, offline
