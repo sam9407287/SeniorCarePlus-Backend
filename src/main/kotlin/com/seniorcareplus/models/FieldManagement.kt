@@ -1,6 +1,7 @@
 package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonElement
 import java.time.LocalDateTime
 
@@ -177,32 +178,57 @@ data class CreateGatewayRequest(
     val status: String? = null,
     
     // cloudData 加前綴格式（標量值）
+    @SerialName("cloudDataContent")
     val cloudDataContent: String? = null,
+    @SerialName("cloudDataGatewayId")
     val cloudDataGatewayId: Int? = null,
+    @SerialName("cloudDataFwVer")
     val cloudDataFwVer: String? = null,
+    @SerialName("cloudDataFwSerial")
     val cloudDataFwSerial: Int? = null,
+    @SerialName("cloudDataUwbHwComOk")
     val cloudDataUwbHwComOk: String? = null,
+    @SerialName("cloudDataUwbJoined")
     val cloudDataUwbJoined: String? = null,
+    @SerialName("cloudDataUwbNetworkId")
     val cloudDataUwbNetworkId: Int? = null,
+    @SerialName("cloudDataConnectedAp")
     val cloudDataConnectedAp: String? = null,
+    @SerialName("cloudDataWifiTxPower")
     val cloudDataWifiTxPower: Int? = null,
+    @SerialName("cloudDataSetWifiMaxTxPower")
     val cloudDataSetWifiMaxTxPower: Double? = null,
+    @SerialName("cloudDataBleScanTime")
     val cloudDataBleScanTime: Int? = null,
+    @SerialName("cloudDataBleScanPauseTime")
     val cloudDataBleScanPauseTime: Int? = null,
+    @SerialName("cloudDataBatteryVoltage")
     val cloudDataBatteryVoltage: Double? = null,
+    @SerialName("cloudDataFiveVPlugged")
     val cloudDataFiveVPlugged: String? = null,
+    @SerialName("cloudDataUwbTxPowerChanged")
     val cloudDataUwbTxPowerChanged: String? = null,
+    @SerialName("cloudDataDiscardIotDataTime")
     val cloudDataDiscardIotDataTime: Int? = null,
+    @SerialName("cloudDataDiscardedIotData")
     val cloudDataDiscardedIotData: Int? = null,
+    @SerialName("cloudDataTotalDiscardedData")
     val cloudDataTotalDiscardedData: Int? = null,
+    @SerialName("cloudDataFirstSync")
     val cloudDataFirstSync: String? = null,
+    @SerialName("cloudDataLastSync")
     val cloudDataLastSync: String? = null,
+    @SerialName("cloudDataCurrent")
     val cloudDataCurrent: String? = null,
+    @SerialName("cloudDataReceivedAt")
     val cloudDataReceivedAt: String? = null,
     
     // cloudData 加前綴格式（物件結構保留）
+    @SerialName("cloudDataUwbTxPower")
     val cloudDataUwbTxPower: Map<String, Double>? = null,
+    @SerialName("cloudDataPubTopic")
     val cloudDataPubTopic: Map<String, String>? = null,
+    @SerialName("cloudDataSubTopic")
     val cloudDataSubTopic: Map<String, String>? = null
 )
 
@@ -220,32 +246,57 @@ data class UpdateGatewayRequest(
     val lastSeen: String? = null,
     
     // cloudData 加前綴格式（標量值）
+    @SerialName("cloudDataContent")
     val cloudDataContent: String? = null,
+    @SerialName("cloudDataGatewayId")
     val cloudDataGatewayId: Int? = null,
+    @SerialName("cloudDataFwVer")
     val cloudDataFwVer: String? = null,
+    @SerialName("cloudDataFwSerial")
     val cloudDataFwSerial: Int? = null,
+    @SerialName("cloudDataUwbHwComOk")
     val cloudDataUwbHwComOk: String? = null,
+    @SerialName("cloudDataUwbJoined")
     val cloudDataUwbJoined: String? = null,
+    @SerialName("cloudDataUwbNetworkId")
     val cloudDataUwbNetworkId: Int? = null,
+    @SerialName("cloudDataConnectedAp")
     val cloudDataConnectedAp: String? = null,
+    @SerialName("cloudDataWifiTxPower")
     val cloudDataWifiTxPower: Int? = null,
+    @SerialName("cloudDataSetWifiMaxTxPower")
     val cloudDataSetWifiMaxTxPower: Double? = null,
+    @SerialName("cloudDataBleScanTime")
     val cloudDataBleScanTime: Int? = null,
+    @SerialName("cloudDataBleScanPauseTime")
     val cloudDataBleScanPauseTime: Int? = null,
+    @SerialName("cloudDataBatteryVoltage")
     val cloudDataBatteryVoltage: Double? = null,
+    @SerialName("cloudDataFiveVPlugged")
     val cloudDataFiveVPlugged: String? = null,
+    @SerialName("cloudDataUwbTxPowerChanged")
     val cloudDataUwbTxPowerChanged: String? = null,
+    @SerialName("cloudDataDiscardIotDataTime")
     val cloudDataDiscardIotDataTime: Int? = null,
+    @SerialName("cloudDataDiscardedIotData")
     val cloudDataDiscardedIotData: Int? = null,
+    @SerialName("cloudDataTotalDiscardedData")
     val cloudDataTotalDiscardedData: Int? = null,
+    @SerialName("cloudDataFirstSync")
     val cloudDataFirstSync: String? = null,
+    @SerialName("cloudDataLastSync")
     val cloudDataLastSync: String? = null,
+    @SerialName("cloudDataCurrent")
     val cloudDataCurrent: String? = null,
+    @SerialName("cloudDataReceivedAt")
     val cloudDataReceivedAt: String? = null,
     
     // cloudData 加前綴格式（物件結構保留）
+    @SerialName("cloudDataUwbTxPower")
     val cloudDataUwbTxPower: Map<String, Double>? = null,
+    @SerialName("cloudDataPubTopic")
     val cloudDataPubTopic: Map<String, String>? = null,
+    @SerialName("cloudDataSubTopic")
     val cloudDataSubTopic: Map<String, String>? = null
 )
 
@@ -331,18 +382,29 @@ data class CreateAnchorRequest(
     val lastSeen: String? = null,
     
     // cloudData 加前綴字段（標量值）
+    @SerialName("cloudDataContent")
     val cloudDataContent: String? = null,
+    @SerialName("cloudDataGatewayId")
     val cloudDataGatewayId: Int? = null,
+    @SerialName("cloudDataNode")
     val cloudDataNode: String? = null,
+    @SerialName("cloudDataName")
     val cloudDataName: String? = null,
+    @SerialName("cloudDataId")
     val cloudDataId: Int? = null,
+    @SerialName("cloudDataFwUpdate")
     val cloudDataFwUpdate: Int? = null,
+    @SerialName("cloudDataLed")
     val cloudDataLed: Int? = null,
+    @SerialName("cloudDataBle")
     val cloudDataBle: Int? = null,
+    @SerialName("cloudDataInitiator")
     val cloudDataInitiator: Int? = null,
+    @SerialName("cloudDataReceivedAt")
     val cloudDataReceivedAt: String? = null,
     
     // cloudData 加前綴字段（物件結構保留）
+    @SerialName("cloudDataPosition")
     val cloudDataPosition: PositionData? = null
 )
 
@@ -358,18 +420,29 @@ data class UpdateAnchorRequest(
     val lastSeen: String? = null,
     
     // cloudData 加前綴字段（標量值）
+    @SerialName("cloudDataContent")
     val cloudDataContent: String? = null,
+    @SerialName("cloudDataGatewayId")
     val cloudDataGatewayId: Int? = null,
+    @SerialName("cloudDataNode")
     val cloudDataNode: String? = null,
+    @SerialName("cloudDataName")
     val cloudDataName: String? = null,
+    @SerialName("cloudDataId")
     val cloudDataId: Int? = null,
+    @SerialName("cloudDataFwUpdate")
     val cloudDataFwUpdate: Int? = null,
+    @SerialName("cloudDataLed")
     val cloudDataLed: Int? = null,
+    @SerialName("cloudDataBle")
     val cloudDataBle: Int? = null,
+    @SerialName("cloudDataInitiator")
     val cloudDataInitiator: Int? = null,
+    @SerialName("cloudDataReceivedAt")
     val cloudDataReceivedAt: String? = null,
     
     // cloudData 加前綴字段（物件結構保留）
+    @SerialName("cloudDataPosition")
     val cloudDataPosition: PositionData? = null
 )
 
