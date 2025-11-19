@@ -3,6 +3,7 @@ package com.seniorcareplus.models
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import java.time.LocalDateTime
 
 /**
@@ -225,11 +226,11 @@ data class CreateGatewayRequest(
     
     // cloudData 加前綴格式（物件結構保留）
     @SerialName("cloudDataUwbTxPower")
-    val cloudDataUwbTxPower: Map<String, Double>? = null,
+    val cloudDataUwbTxPower: JsonElement? = null,
     @SerialName("cloudDataPubTopic")
-    val cloudDataPubTopic: Map<String, String>? = null,
+    val cloudDataPubTopic: JsonElement? = null,
     @SerialName("cloudDataSubTopic")
-    val cloudDataSubTopic: Map<String, String>? = null
+    val cloudDataSubTopic: JsonElement? = null
 )
 
 /**
@@ -293,11 +294,11 @@ data class UpdateGatewayRequest(
     
     // cloudData 加前綴格式（物件結構保留）
     @SerialName("cloudDataUwbTxPower")
-    val cloudDataUwbTxPower: Map<String, Double>? = null,
+    val cloudDataUwbTxPower: JsonElement? = null,
     @SerialName("cloudDataPubTopic")
-    val cloudDataPubTopic: Map<String, String>? = null,
+    val cloudDataPubTopic: JsonElement? = null,
     @SerialName("cloudDataSubTopic")
-    val cloudDataSubTopic: Map<String, String>? = null
+    val cloudDataSubTopic: JsonElement? = null
 )
 
 /**
