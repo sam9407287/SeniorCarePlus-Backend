@@ -282,7 +282,7 @@ object DataTransformationHelper {
         
         if (cloudDataJson != null) {
             return try {
-                val cloudData = Json.parseToJsonElement(cloudDataJson).jsonObject
+                val cloudData = Json.decodeFromString<JsonObject>(cloudDataJson)
                 convertCloudDataToGatewayDataWithPrefix(gateway, cloudData)
             } catch (e: Exception) {
                 gateway
@@ -325,7 +325,7 @@ object DataTransformationHelper {
         
         if (cloudDataJson != null) {
             return try {
-                val cloudData = Json.parseToJsonElement(cloudDataJson).jsonObject
+                val cloudData = Json.decodeFromString<JsonObject>(cloudDataJson)
                 convertCloudDataToAnchorDataWithPrefix(anchor, cloudData)
             } catch (e: Exception) {
                 anchor

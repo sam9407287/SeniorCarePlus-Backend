@@ -2,6 +2,7 @@ package com.seniorcareplus.models
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.Contextual
 import java.time.LocalDateTime
 
 /**
@@ -306,6 +307,7 @@ data class AnchorCloudData(
     val receivedAt: String? = null,
     
     // 通用字段容器（用於存儲其他 cloudData 加前綴字段）
+    @Contextual
     val extraFields: Map<String, Any?>? = null
 )
 
