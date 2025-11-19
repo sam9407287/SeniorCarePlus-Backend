@@ -119,7 +119,8 @@ data class UpdateFloorRequest(
 )
 
 /**
- * 網關數據模型 (Gateway)
+ * 網關數據模型 (Gateway) - v2 平坦化格式
+ * 支援 cloudData 加前綴的格式（如 cloudDataGatewayId, cloudDataUwbTxPower 等）
  */
 @Serializable
 data class GatewayData(
@@ -127,52 +128,125 @@ data class GatewayData(
     val floorId: String,
     val name: String,
     val macAddress: String,
+    val ipAddress: String? = null,
     val firmwareVersion: String? = null,
-    val cloudData: CloudDataInfo? = null,
     val status: String = "offline",
     val lastSeen: String? = null,
-    val createdAt: String
+    val createdAt: String,
+    
+    // cloudData 加前綴格式（標量值）
+    val cloudDataContent: String? = null,
+    val cloudDataGatewayId: Int? = null,
+    val cloudDataFwVer: String? = null,
+    val cloudDataFwSerial: Int? = null,
+    val cloudDataUwbHwComOk: String? = null,
+    val cloudDataUwbJoined: String? = null,
+    val cloudDataUwbNetworkId: Int? = null,
+    val cloudDataConnectedAp: String? = null,
+    val cloudDataWifiTxPower: Int? = null,
+    val cloudDataSetWifiMaxTxPower: Double? = null,
+    val cloudDataBleScanTime: Int? = null,
+    val cloudDataBleScanPauseTime: Int? = null,
+    val cloudDataBatteryVoltage: Double? = null,
+    val cloudDataFiveVPlugged: String? = null,
+    val cloudDataUwbTxPowerChanged: String? = null,
+    val cloudDataDiscardIotDataTime: Int? = null,
+    val cloudDataDiscardedIotData: Int? = null,
+    val cloudDataTotalDiscardedData: Int? = null,
+    val cloudDataFirstSync: String? = null,
+    val cloudDataLastSync: String? = null,
+    val cloudDataCurrent: String? = null,
+    val cloudDataReceivedAt: String? = null,
+    
+    // cloudData 加前綴格式（物件結構保留）
+    val cloudDataUwbTxPower: Map<String, Double>? = null,
+    val cloudDataPubTopic: Map<String, String>? = null,
+    val cloudDataSubTopic: Map<String, String>? = null
 )
 
 /**
- * 雲端數據信息
- */
-@Serializable
-data class CloudDataInfo(
-    val gateway_id: Int,
-    val sub_topic: SubTopic
-)
-
-@Serializable
-data class SubTopic(
-    val uplink: String,
-    val downlink: String
-)
-
-/**
- * 創建網關請求
+ * 創建網關請求 - v2 平坦化格式
  */
 @Serializable
 data class CreateGatewayRequest(
     val floorId: String,
     val name: String,
     val macAddress: String,
+    val ipAddress: String? = null,
     val firmwareVersion: String? = null,
-    val cloudData: CloudDataInfo? = null
+    val status: String? = null,
+    
+    // cloudData 加前綴格式（標量值）
+    val cloudDataContent: String? = null,
+    val cloudDataGatewayId: Int? = null,
+    val cloudDataFwVer: String? = null,
+    val cloudDataFwSerial: Int? = null,
+    val cloudDataUwbHwComOk: String? = null,
+    val cloudDataUwbJoined: String? = null,
+    val cloudDataUwbNetworkId: Int? = null,
+    val cloudDataConnectedAp: String? = null,
+    val cloudDataWifiTxPower: Int? = null,
+    val cloudDataSetWifiMaxTxPower: Double? = null,
+    val cloudDataBleScanTime: Int? = null,
+    val cloudDataBleScanPauseTime: Int? = null,
+    val cloudDataBatteryVoltage: Double? = null,
+    val cloudDataFiveVPlugged: String? = null,
+    val cloudDataUwbTxPowerChanged: String? = null,
+    val cloudDataDiscardIotDataTime: Int? = null,
+    val cloudDataDiscardedIotData: Int? = null,
+    val cloudDataTotalDiscardedData: Int? = null,
+    val cloudDataFirstSync: String? = null,
+    val cloudDataLastSync: String? = null,
+    val cloudDataCurrent: String? = null,
+    val cloudDataReceivedAt: String? = null,
+    
+    // cloudData 加前綴格式（物件結構保留）
+    val cloudDataUwbTxPower: Map<String, Double>? = null,
+    val cloudDataPubTopic: Map<String, String>? = null,
+    val cloudDataSubTopic: Map<String, String>? = null
 )
 
 /**
- * 更新網關請求
+ * 更新網關請求 - v2 平坦化格式
  */
 @Serializable
 data class UpdateGatewayRequest(
     val floorId: String? = null,
     val name: String? = null,
     val macAddress: String? = null,
+    val ipAddress: String? = null,
     val firmwareVersion: String? = null,
-    val cloudData: CloudDataInfo? = null,
     val status: String? = null,
-    val lastSeen: String? = null
+    val lastSeen: String? = null,
+    
+    // cloudData 加前綴格式（標量值）
+    val cloudDataContent: String? = null,
+    val cloudDataGatewayId: Int? = null,
+    val cloudDataFwVer: String? = null,
+    val cloudDataFwSerial: Int? = null,
+    val cloudDataUwbHwComOk: String? = null,
+    val cloudDataUwbJoined: String? = null,
+    val cloudDataUwbNetworkId: Int? = null,
+    val cloudDataConnectedAp: String? = null,
+    val cloudDataWifiTxPower: Int? = null,
+    val cloudDataSetWifiMaxTxPower: Double? = null,
+    val cloudDataBleScanTime: Int? = null,
+    val cloudDataBleScanPauseTime: Int? = null,
+    val cloudDataBatteryVoltage: Double? = null,
+    val cloudDataFiveVPlugged: String? = null,
+    val cloudDataUwbTxPowerChanged: String? = null,
+    val cloudDataDiscardIotDataTime: Int? = null,
+    val cloudDataDiscardedIotData: Int? = null,
+    val cloudDataTotalDiscardedData: Int? = null,
+    val cloudDataFirstSync: String? = null,
+    val cloudDataLastSync: String? = null,
+    val cloudDataCurrent: String? = null,
+    val cloudDataReceivedAt: String? = null,
+    
+    // cloudData 加前綴格式（物件結構保留）
+    val cloudDataUwbTxPower: Map<String, Double>? = null,
+    val cloudDataPubTopic: Map<String, String>? = null,
+    val cloudDataSubTopic: Map<String, String>? = null
 )
 
 /**
@@ -206,24 +280,33 @@ data class PositionData(
 )
 
 /**
- * 錨點雲端數據 - 支持完整的 MQTT 設備數據
- * 前端可能發送各種 MQTT 設備信息，所有字段都是可選的
- * 注：其他額外字段將被 ignoreUnknownKeys 自動忽略
+ * 錨點數據 v2 - 平坦化格式
+ * 支持 cloudData 加前綴的格式（如 cloudDataGatewayId, cloudDataPosition 等）
+ * 使用 @JsonAnySetter 和 @JsonAnyGetter 處理動態字段
  */
 @Serializable
 data class AnchorCloudData(
     // 基本標識
     val id: Int? = null,
-    val gateway_id: Int? = null,
-    val name: String? = null,
+    val gatewayId: Int? = null,  // camelCase (from cloudDataGatewayId)
     val node: String? = null,
+    val name: String? = null,
     val content: String? = null,
     
-    // 位置信息（可能嵌套在 cloudData 中）
+    // 配置字段
+    val fwUpdate: Int? = null,
+    val led: Int? = null,
+    val ble: Int? = null,
+    val initiator: Int? = null,
+    
+    // 位置信息（物件結構保留）
     val position: PositionData? = null,
     
     // 時間戳
-    val receivedAt: String? = null
+    val receivedAt: String? = null,
+    
+    // 通用字段容器（用於存儲其他 cloudData 加前綴字段）
+    val extraFields: Map<String, Any?>? = null
 )
 
 /**
@@ -238,34 +321,60 @@ data class AnchorConfig(
 )
 
 /**
- * 創建錨點請求
- * Anchor 初始創建時不綁定到 Gateway
- * 支持前端發送的完整 MQTT 數據格式
- * 
- * 方案2：使用 JsonElement 接收 cloudData，避免類型不匹配問題
+ * 創建錨點請求 - v2 平坦化格式
+ * 接收前端發送的 cloudData 加前綴格式
  */
 @Serializable
 data class CreateAnchorRequest(
+    val id: String? = null,
     val name: String,
     val macAddress: String,
-    val position: PositionData? = null,  // ✨ 改為可選，因為位置信息可能在 cloudData 中
-    val cloudData: JsonElement? = null,  // ✨ 方案2：使用 JsonElement 接收原始 JSON，不檢查類型
-    val gatewayId: String? = null,       // ✨ 新增：支持創建時直接綁定
-    val status: String? = null,          // ✨ 新增：支持狀態
-    val lastSeen: String? = null         // ✨ 新增：支持最後上線時間
+    val position: PositionData? = null,
+    val gatewayId: String? = null,
+    val status: String? = null,
+    val lastSeen: String? = null,
+    
+    // cloudData 加前綴字段（標量值）
+    val cloudDataContent: String? = null,
+    val cloudDataGatewayId: Int? = null,
+    val cloudDataNode: String? = null,
+    val cloudDataName: String? = null,
+    val cloudDataId: Int? = null,
+    val cloudDataFwUpdate: Int? = null,
+    val cloudDataLed: Int? = null,
+    val cloudDataBle: Int? = null,
+    val cloudDataInitiator: Int? = null,
+    val cloudDataReceivedAt: String? = null,
+    
+    // cloudData 加前綴字段（物件結構保留）
+    val cloudDataPosition: PositionData? = null
 )
 
 /**
- * 更新錨點請求
- * 方案2：使用 JsonElement 接收 cloudData
+ * 更新錨點請求 - v2 平坦化格式
  */
 @Serializable
 data class UpdateAnchorRequest(
     val name: String? = null,
     val macAddress: String? = null,
     val position: PositionData? = null,
-    val cloudData: JsonElement? = null,  // ✨ 方案2：使用 JsonElement 接收原始 JSON
-    val status: String? = null
+    val status: String? = null,
+    val lastSeen: String? = null,
+    
+    // cloudData 加前綴字段（標量值）
+    val cloudDataContent: String? = null,
+    val cloudDataGatewayId: Int? = null,
+    val cloudDataNode: String? = null,
+    val cloudDataName: String? = null,
+    val cloudDataId: Int? = null,
+    val cloudDataFwUpdate: Int? = null,
+    val cloudDataLed: Int? = null,
+    val cloudDataBle: Int? = null,
+    val cloudDataInitiator: Int? = null,
+    val cloudDataReceivedAt: String? = null,
+    
+    // cloudData 加前綴字段（物件結構保留）
+    val cloudDataPosition: PositionData? = null
 )
 
 /**

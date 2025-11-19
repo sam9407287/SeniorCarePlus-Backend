@@ -2,7 +2,6 @@ package com.seniorcareplus.routes
 
 import com.seniorcareplus.database.*
 import com.seniorcareplus.models.*
-import com.seniorcareplus.utils.DataTransformationHelper
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -447,21 +446,20 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // ==================== Gateways 路由 (v2 - cloudData 加前綴格式) ====================
+        // ==================== Gateways 路由 ====================
         
-        // 獲取所有網關 - 返回新格式（cloudData 加前綴）
+        // 獲取所有網關
         get("/gateways") {
             try {
                 val gateways = transaction {
                     Gateways.selectAll().map { row ->
-                        DataTransformationHelper.convertStoredJsonToGatewayData(
+                        GatewayData(
                             id = row[Gateways.gatewayId],
                             floorId = row[Gateways.floorId],
                             name = row[Gateways.name],
                             macAddress = row[Gateways.macAddress],
-                            ipAddress = null,  // 舊資料可能沒有 ipAddress
                             firmwareVersion = row[Gateways.firmwareVersion],
-                            cloudDataJson = row[Gateways.cloudData],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Gateways.status],
                             lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -477,7 +475,7 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 根據樓層ID獲取網關 - 返回新格式
+        // 根據樓層ID獲取網關
         get("/floors/{floorId}/gateways") {
             try {
                 val floorId = call.parameters["floorId"] ?: return@get call.respond(
@@ -487,14 +485,13 @@ fun Route.fieldManagementRoutes() {
                 
                 val gateways = transaction {
                     Gateways.select { Gateways.floorId eq floorId }.map { row ->
-                        DataTransformationHelper.convertStoredJsonToGatewayData(
+                        GatewayData(
                             id = row[Gateways.gatewayId],
                             floorId = row[Gateways.floorId],
                             name = row[Gateways.name],
                             macAddress = row[Gateways.macAddress],
-                            ipAddress = null,
                             firmwareVersion = row[Gateways.firmwareVersion],
-                            cloudDataJson = row[Gateways.cloudData],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Gateways.status],
                             lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -510,14 +507,11 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 創建新網關 - 接收新格式（cloudData 加前綴）
+        // 創建新網關
         post("/gateways") {
             try {
                 val request = call.receive<CreateGatewayRequest>()
-                val gatewayId = "gw_${System.currentTimeMillis()}"
-                
-                // 使用轉換工具將新格式轉換為存儲格式（JSON 字符串）
-                val cloudDataJson = DataTransformationHelper.convertCreateGatewayRequestToCloudDataJson(request)
+                val gatewayId = "gateway_${System.currentTimeMillis()}"
                 
                 transaction {
                     Gateways.insert {
@@ -526,21 +520,19 @@ fun Route.fieldManagementRoutes() {
                         it[name] = request.name
                         it[macAddress] = request.macAddress
                         it[firmwareVersion] = request.firmwareVersion
-                        it[cloudData] = cloudDataJson  // 存儲轉換後的 JSON
-                        it[status] = request.status ?: "offline"
+                        it[cloudData] = request.cloudData?.let { cd -> Json.encodeToString(cd) }
                     }
                 }
                 
                 val newGateway = transaction {
                     Gateways.select { Gateways.gatewayId eq gatewayId }.single().let { row ->
-                        DataTransformationHelper.convertStoredJsonToGatewayData(
+                        GatewayData(
                             id = row[Gateways.gatewayId],
                             floorId = row[Gateways.floorId],
                             name = row[Gateways.name],
                             macAddress = row[Gateways.macAddress],
-                            ipAddress = request.ipAddress,
                             firmwareVersion = row[Gateways.firmwareVersion],
-                            cloudDataJson = row[Gateways.cloudData],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Gateways.status],
                             lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -557,7 +549,7 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 根據ID獲取單個網關 - 返回新格式
+        // 根據ID獲取單個網關
         get("/gateways/{id}") {
             try {
                 val id = call.parameters["id"] ?: return@get call.respond(
@@ -567,14 +559,13 @@ fun Route.fieldManagementRoutes() {
                 
                 val gateway = transaction {
                     Gateways.select { Gateways.gatewayId eq id }.singleOrNull()?.let { row ->
-                        DataTransformationHelper.convertStoredJsonToGatewayData(
+                        GatewayData(
                             id = row[Gateways.gatewayId],
                             floorId = row[Gateways.floorId],
                             name = row[Gateways.name],
                             macAddress = row[Gateways.macAddress],
-                            ipAddress = null,
                             firmwareVersion = row[Gateways.firmwareVersion],
-                            cloudDataJson = row[Gateways.cloudData],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Gateways.status],
                             lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -598,7 +589,7 @@ fun Route.fieldManagementRoutes() {
             }
         }
         
-        // 更新網關 - 接收新格式並轉換存儲
+        // 更新網關
         put("/gateways/{id}") {
             try {
                 val id = call.parameters["id"] ?: return@put call.respond(
@@ -613,36 +604,23 @@ fun Route.fieldManagementRoutes() {
                         return@transaction null
                     }
                     
-                    // 如果有 cloudData 加前綴字段，轉換為 JSON
-                    val cloudDataJson = DataTransformationHelper.convertUpdateGatewayRequestToCloudDataJson(request)
-                    
                     Gateways.update({ Gateways.gatewayId eq id }) {
                         request.name?.let { name -> it[Gateways.name] = name }
                         request.floorId?.let { fId -> it[floorId] = fId }
                         request.macAddress?.let { mac -> it[macAddress] = mac }
                         request.firmwareVersion?.let { fw -> it[firmwareVersion] = fw }
-                        if (cloudDataJson != null) {
-                            it[cloudData] = cloudDataJson
-                        }
+                        request.cloudData?.let { cd -> it[cloudData] = Json.encodeToString(cd) }
                         request.status?.let { s -> it[status] = s }
-                        request.lastSeen?.let { ls -> 
-                            it[lastSeen] = try {
-                                LocalDateTime.parse(ls)
-                            } catch (e: Exception) {
-                                LocalDateTime.now()
-                            }
-                        }
                     }
                     
                     Gateways.select { Gateways.gatewayId eq id }.single().let { row ->
-                        DataTransformationHelper.convertStoredJsonToGatewayData(
+                        GatewayData(
                             id = row[Gateways.gatewayId],
                             floorId = row[Gateways.floorId],
                             name = row[Gateways.name],
                             macAddress = row[Gateways.macAddress],
-                            ipAddress = request.ipAddress,
                             firmwareVersion = row[Gateways.firmwareVersion],
-                            cloudDataJson = row[Gateways.cloudData],
+                            cloudData = row[Gateways.cloudData]?.let { Json.decodeFromString(it) },
                             status = row[Gateways.status],
                             lastSeen = row[Gateways.lastSeen]?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             createdAt = row[Gateways.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
