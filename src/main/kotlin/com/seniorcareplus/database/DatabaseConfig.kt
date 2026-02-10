@@ -3,9 +3,12 @@ package com.seniorcareplus.database
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.sql.DriverManager
+import java.time.LocalDateTime
 
 /**
  * 數據庫配置
@@ -334,22 +337,22 @@ object DatabaseConfig {
                 // 刪除 7 天前的位置記錄（最占空間）
                 val cutoffDate = LocalDateTime.now().minusDays(7)
                 val locationDeleted = LocationRecords.deleteWhere { 
-                    LocationRecords.timestamp less cutoffDate 
+                    timestamp less cutoffDate 
                 }
                 logger.info("✅ 刪除 $locationDeleted 條位置記錄（保留7天）")
                 
                 // 刪除 30 天前的健康記錄
                 val healthCutoff = LocalDateTime.now().minusDays(30)
                 val healthDeleted = HealthRecords.deleteWhere { 
-                    HealthRecords.timestamp less healthCutoff 
+                    timestamp less healthCutoff 
                 }
                 logger.info("✅ 刪除 $healthDeleted 條健康記錄（保留30天）")
                 
                 // 刪除 14 天前已處理的警報
                 val alertCutoff = LocalDateTime.now().minusDays(14)
                 val alertsDeleted = Alerts.deleteWhere {
-                    (Alerts.status eq "resolved") and 
-                    (Alerts.triggeredAt less alertCutoff)
+                    (status eq "resolved") and 
+                    (triggeredAt less alertCutoff)
                 }
                 logger.info("✅ 刪除 $alertsDeleted 條已處理警報（保留14天）")
             }
