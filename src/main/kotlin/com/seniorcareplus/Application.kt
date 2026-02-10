@@ -20,6 +20,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -178,6 +180,28 @@ fun Application.module() {
             logger.info("MQTT服務啟動成功")
         } catch (e: Exception) {
             logger.error("MQTT服務啟動失敗", e)
+        }
+    }
+    
+    // 定期數據清理任務（只保留一週數據）
+    launch {
+        // 等待啟動完成後執行第一次清理
+        delay(300000) // 5 分鐘
+        
+        while(isActive) {
+            try {
+                logger.info("⏰ 執行定期數據清理...")
+                DatabaseConfig.cleanupOldData()
+                
+                // 每天凌晨執行一次
+                delay(86400000) // 24 小時
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                logger.info("數據清理任務已取消")
+                break
+            } catch (e: Exception) {
+                logger.error("數據清理錯誤: ${e.message}", e)
+                delay(3600000) // 錯誤時 1 小時後重試
+            }
         }
     }
     
