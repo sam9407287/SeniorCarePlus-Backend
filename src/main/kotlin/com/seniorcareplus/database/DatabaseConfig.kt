@@ -13,6 +13,9 @@ import java.sql.DriverManager
 object DatabaseConfig {
     private val logger = LoggerFactory.getLogger(DatabaseConfig::class.java)
     
+    // 保存数据源以便关闭
+    private var dataSource: HikariDataSource? = null
+    
     /**
      * 初始化數據庫
      */
@@ -163,10 +166,10 @@ object DatabaseConfig {
                 }
             }
             
-            val dataSource = HikariDataSource(config)
+            dataSource = HikariDataSource(config)
             
             // 連接到PostgreSQL數據庫
-            Database.connect(dataSource)
+            Database.connect(dataSource!!)
             
             logger.info("PostgreSQL數據庫連接成功 (${config.jdbcUrl})")
             
@@ -317,6 +320,20 @@ object DatabaseConfig {
             logger.info("測試數據創建完成")
         } catch (e: Exception) {
             logger.error("創建測試數據失敗: ${e.message}")
+        }
+    }
+    
+    /**
+     * 關閉數據庫連接池
+     */
+    fun shutdown() {
+        try {
+            logger.info("正在關閉數據庫連接池...")
+            dataSource?.close()
+            dataSource = null
+            logger.info("✅ 數據庫連接池已關閉")
+        } catch (e: Exception) {
+            logger.error("關閉數據庫連接池失敗: ${e.message}", e)
         }
     }
 } 

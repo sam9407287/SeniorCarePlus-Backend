@@ -10,9 +10,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
@@ -32,6 +30,10 @@ class MqttService {
     private var mqttClientReceiver: MqttAsyncClient? = null  // 接收遠端數據
     private var mqttClientPublisher: MqttAsyncClient? = null // 發送給App
     private val json = Json { ignoreUnknownKeys = true }
+    
+    // 使用自己的 CoroutineScope 而不是 GlobalScope
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var healthPublisherJob: Job? = null
     
     companion object {
         // 雲端MQTT服務器配置 (接收和發送數據) - 支持環境變數
@@ -121,7 +123,7 @@ class MqttService {
             mqttClientReceiver?.setCallback(object : MqttCallback {
                 override fun connectionLost(cause: Throwable?) {
                     logger.warn("MQTT連接丟失: ${cause?.message}")
-                    GlobalScope.launch {
+                    serviceScope.launch {
                         reconnect()
                     }
                 }
@@ -133,7 +135,7 @@ class MqttService {
                             logger.info("收到MQTT消息 - 主題: $topic, 內容: $messageContent")
                             
                             // 處理並存儲消息
-                            GlobalScope.launch {
+                            serviceScope.launch {
                                 processMessage(topic, messageContent)
                             }
                         }
@@ -149,7 +151,7 @@ class MqttService {
             mqttClientPublisher?.setCallback(object : MqttCallback {
                 override fun connectionLost(cause: Throwable?) {
                     logger.warn("MQTT發布連接丟失: ${cause?.message}")
-                    GlobalScope.launch {
+                    serviceScope.launch {
                         reconnectPublisher()
                     }
                 }
@@ -758,13 +760,20 @@ class MqttService {
      * 啟動定期健康狀態發布
      */
     private fun startHealthStatusPublisher() {
-        GlobalScope.launch {
-            while (true) {
+        // 取消之前的任务（如果存在）
+        healthPublisherJob?.cancel()
+        
+        // 使用 serviceScope 而不是 GlobalScope
+        healthPublisherJob = serviceScope.launch {
+            while (isActive) { // 检查协程是否仍然活跃
                 try {
                     if (mqttClientPublisher?.isConnected == true) {
                         publishHealthStatus()
                     }
                     delay(30000) // 每30秒發送一次健康狀態
+                } catch (e: CancellationException) {
+                    logger.info("健康狀態發布任務已取消")
+                    break
                 } catch (e: Exception) {
                     logger.error("健康狀態發布循環錯誤: ${e.message}")
                     delay(60000) // 錯誤時等待1分鐘
@@ -818,11 +827,28 @@ class MqttService {
      */
     fun disconnect() {
         try {
+            logger.info("正在斷開 MQTT 連接...")
+            
+            // 1. 取消健康狀態發布任務
+            healthPublisherJob?.cancel()
+            logger.info("✅ 健康狀態發布任務已取消")
+            
+            // 2. 取消所有協程
+            serviceScope.cancel()
+            logger.info("✅ 所有 MQTT 協程已取消")
+            
+            // 3. 斷開 MQTT 客戶端
             mqttClientReceiver?.disconnect()
             mqttClientPublisher?.disconnect()
-            logger.info("MQTT連接已斷開")
+            logger.info("✅ MQTT 連接已斷開")
+            
+            // 4. 關閉客戶端
+            mqttClientReceiver?.close()
+            mqttClientPublisher?.close()
+            logger.info("✅ MQTT 客戶端已關閉")
+            
         } catch (e: Exception) {
-            logger.error("斷開MQTT連接時發生錯誤: ${e.message}")
+            logger.error("斷開MQTT連接時發生錯誤: ${e.message}", e)
         }
     }
 } 

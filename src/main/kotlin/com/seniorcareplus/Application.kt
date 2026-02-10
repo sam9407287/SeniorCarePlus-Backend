@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import kotlinx.coroutines.Job
 
 fun main() {
     val logger = LoggerFactory.getLogger("Application")
@@ -62,6 +63,10 @@ fun main() {
 
 fun Application.module() {
     val logger = LoggerFactory.getLogger("ApplicationModule")
+    
+    // 保存 MQTT 服务实例以便清理
+    var mqttService: MqttService? = null
+    var mqttJob: Job? = null
     
     // 配置JSON序列化
     install(ContentNegotiation) {
@@ -165,11 +170,11 @@ fun Application.module() {
     }
     
     // 啟動MQTT服務
-    launch {
+    mqttJob = launch {
         try {
             logger.info("正在啟動MQTT服務...")
-            val mqttService = MqttService()
-            mqttService.connect()
+            mqttService = MqttService()
+            mqttService?.connect()
             logger.info("MQTT服務啟動成功")
         } catch (e: Exception) {
             logger.error("MQTT服務啟動失敗", e)
@@ -178,8 +183,26 @@ fun Application.module() {
     
     // 應用程序關閉時的清理工作
     environment.monitor.subscribe(ApplicationStopping) {
-        logger.info("應用程序正在關閉...")
-        // 在這裡可以添加清理邏輯，如關閉MQTT連接等
+        logger.info("🛑 應用程序正在關閉，開始清理資源...")
+        
+        try {
+            // 1. 取消 MQTT 协程
+            mqttJob?.cancel()
+            logger.info("✅ MQTT 协程已取消")
+            
+            // 2. 断开 MQTT 连接
+            mqttService?.disconnect()
+            logger.info("✅ MQTT 连接已断开")
+            
+            // 3. 关闭数据库连接池
+            DatabaseConfig.shutdown()
+            logger.info("✅ 数据库连接池已关闭")
+            
+        } catch (e: Exception) {
+            logger.error("❌ 清理資源時發生錯誤: ${e.message}", e)
+        }
+        
+        logger.info("🏁 應用程序清理完成")
     }
     
     logger.info("SeniorCarePlus Backend 服務已啟動，監聽端口: 8080")
